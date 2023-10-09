@@ -1,0 +1,87 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: metaphactory-config
+data:
+  environment.prop: {{- .Values.config.environmentProp | toYaml | indent 2 }}
+  shiro-sso-oidc-params.ini: {{- .Values.config.ssoOidcParams | toYaml | indent 2 }}
+  shiro.ini: {{- .Values.config.localDefaultUsers | toYaml | indent 2 }}
+  shiro-sso-users.ini: {{- .Values.config.ssoUsers | toYaml | indent 2 }}
+  storage.prop: {{- .Values.config.storage_prop | toYaml | indent 2 }}
+  plugin.properties: |
+    plugin.id=config-app
+    plugin.provider=Devops
+    plugin.version=1.0.0
+  {{- range $roleName, $roleContent := .Values.config.customRoles }}
+  role-{{ $roleName }}.prop: {{- $roleContent | toYaml | indent 4 }}
+  {{- end }}
+  repository-config: |
+    # Configuration template for an Ontotext GraphDB repository
+    # accessed via the RDF4J REST API
+    @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#>.
+    @prefix rep: <http://www.openrdf.org/config/repository#>.
+    @prefix hr: <http://www.openrdf.org/config/repository/http#>.
+    @prefix mph: <http://www.metaphacts.com/ontologies/platform/repository#>.
+
+    [] a rep:Repository ;
+       rep:repositoryID "default" ; # Replace with your repository ID or leave default if this is the main repository
+       rdfs:label "GraphDB repository" ;
+       rep:repositoryImpl [
+          rep:repositoryType "{{ .Values.database.repositoryType }}" ;
+
+          # Basic HTTP Auth credentials. You can comment these out if the repository does not require authentication.
+          # Username and password for the repository can be provided inline or using Externalized Secrets
+          mph:username "${repository.username}" ;
+          mph:password "${repository.password}" ;
+
+          # replace with the url of the GraphDB repository
+          hr:repositoryURL <{{ .Values.database.address }}/repositories/{{ .Values.database.defaultDatabaseName }}>
+       ].
+  repository-tests-config: |
+    # Configuration template for an Ontotext GraphDB repository
+    # accessed via the RDF4J REST API
+    @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#>.
+    @prefix rep: <http://www.openrdf.org/config/repository#>.
+    @prefix hr: <http://www.openrdf.org/config/repository/http#>.
+    @prefix mph: <http://www.metaphacts.com/ontologies/platform/repository#>.
+
+    [] a rep:Repository ;
+       rep:repositoryID "tests" ; # Replace with your repository ID or leave default if this is the main repository
+       rdfs:label "GraphDB repository" ;
+       rep:repositoryImpl [
+          rep:repositoryType "{{ .Values.database.repositoryType }}" ;
+
+          # Basic HTTP Auth credentials. You can comment these out if the repository does not require authentication.
+          # Username and password for the repository can be provided inline or using Externalized Secrets
+          mph:username "${repository.username}" ;
+          mph:password "${repository.password}" ;
+
+          # replace with the url of the GraphDB repository
+          hr:repositoryURL <{{ .Values.database.address }}/repositories/{{ .Values.database.testsDatabaseName }}>
+       ].
+  repository-assets-config: |
+    # Configuration template for an Ontotext GraphDB repository
+    # accessed via the RDF4J REST API
+    @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#>.
+    @prefix rep: <http://www.openrdf.org/config/repository#>.
+    @prefix hr: <http://www.openrdf.org/config/repository/http#>.
+    @prefix mph: <http://www.metaphacts.com/ontologies/platform/repository#>.
+
+    [] a rep:Repository ;
+       rep:repositoryID "assets" ; # Replace with your repository ID or leave default if this is the main repository
+       rdfs:label "GraphDB repository" ;
+       rep:repositoryImpl [
+          rep:repositoryType "{{ .Values.database.repositoryType }}" ;
+
+          # Basic HTTP Auth credentials. You can comment these out if the repository does not require authentication.
+          # Username and password for the repository can be provided inline or using Externalized Secrets
+          mph:username "${repository.username}" ;
+          mph:password "${repository.password}" ;
+
+          # replace with the url of the GraphDB repository
+          hr:repositoryURL <{{ .Values.database.address }}/repositories/{{ .Values.database.assetsDatabaseName }}>
+       ];
+       mph:extension [
+          mph:extensionType "metaphacts:NamedGraphSecurity";
+          mph:strategy "assets"
+       ] .

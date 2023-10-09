@@ -1,0 +1,148 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ .Values.container.name }}
+  labels:
+    app: {{ .Values.container.name }}
+spec:
+  serviceName: {{.Values.container.name | quote }}
+  replicas: {{ .Values.replicas }}
+  selector:
+    matchLabels:
+      app: {{ .Values.container.name }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.container.name }}
+    spec:
+      securityContext:
+        fsGroup: 101
+      terminationGracePeriodSeconds: 10
+      containers:
+      - env:
+        - name: SECRET_REPOSITORY_PASSWORD
+          valueFrom:
+           secretKeyRef:
+            name: {{ .Values.container.credentialsSecretName }}
+            key: repository.password
+        - name: SECRET_REPOSITORY_USERNAME
+          valueFrom:
+           secretKeyRef:
+            name: {{ .Values.container.credentialsSecretName }}
+            key: repository.username
+        - name: PLATFORM_OPTS
+          value: {{ (.Values.config.env |default dict).PLATFORM_OPTS | quote }}
+        image: {{ .Values.container.image }}:{{ .Values.container.tag }}
+        name: {{ .Values.container.name }}
+        resources:
+          requests:
+            cpu: {{ .Values.container.resources.cpuRequest }}
+            memory: {{ .Values.container.resources.memoryRequest }}
+          limits:
+            cpu: {{ .Values.container.resources.cpuLimit }}
+            memory: {{ .Values.container.resources.memoryLimit }}
+        readinessProbe:
+          httpGet:
+            path: /login
+            port: 8080
+          initialDelaySeconds: 120
+          failureThreshold: 10
+          periodSeconds: 10
+        livenessProbe:
+          httpGet:
+            path: /login
+            port: 8080
+          failureThreshold: 3
+          periodSeconds: 120
+        volumeMounts:
+        - mountPath: /runtime-data
+          name: {{ .Values.container.name }}-runtime-data
+        - mountPath: /apps
+          name: {{ .Values.container.name }}-apps
+        - mountPath: /storage
+          name: {{ .Values.container.name }}-storage
+        - name: config-app
+          mountPath: "/apps/config-app"
+          readOnly: true
+        ports:
+        - containerPort: {{ .Values.container.port }}
+          protocol: TCP
+      initContainers:
+      - image: {{ .Values.container.image }}:{{ .Values.container.tag }}
+        name: {{ .Values.container.name }}-config-init
+        command: ["cp","-r","-n","/runtime-data/.","/runtime-target/"]
+        volumeMounts:
+        - mountPath: /runtime-target
+          name: {{ .Values.container.name }}-runtime-data
+      imagePullSecrets:
+      - name: {{ .Values.container.imagePullSecretName }}
+      volumes:
+      - name: config-app
+        configMap:
+          name: metaphactory-config
+          items:
+          - key: "environment.prop"
+            path: "config/environment.prop"
+          - key: "shiro-sso-oidc-params.ini"
+            path: "config/shiro-sso-oidc-params.ini"
+          - key: "shiro-sso-users.ini"
+            path: "config/shiro-sso-users.ini"
+          - key: "repository-config"
+            path: "config/repositories/default.ttl"
+          - key: "repository-assets-config"
+            path: "config/repositories/assets.ttl"
+          - key: "repository-tests-config"
+            path: "config/repositories/tests.ttl"
+          - key: "shiro.ini"
+            path: "config/shiro.ini"
+          - key: "storage.prop"
+            path: "config/storage.prop"
+          {{- range $roleName, $roleContent := .Values.config.customRoles }}
+          - key: "role-{{ $roleName }}.prop"
+            path: "config/roles/role-{{ $roleName }}.prop"
+          {{- end }}
+          - key: "plugin.properties"
+            path: "plugin.properties"
+  volumeClaimTemplates:
+  - metadata:
+      name: {{ .Values.container.name }}-runtime-data
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      {{- if .Values.storage.storageClass }}
+      {{- if (eq "-" .Values.storage.storageClass) }}
+      storageClassName: ""
+      {{- else }}
+      storageClassName: "{{ .Values.storage.storageClass }}"
+      {{- end }}
+      {{- end }}
+      resources:
+        requests:
+          storage: {{ .Values.container.persistentVolumeSize }}
+  - metadata:
+      name: {{ .Values.container.name }}-apps
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      {{- if .Values.storage.storageClass }}
+      {{- if (eq "-" .Values.storage.storageClass) }}
+      storageClassName: ""
+      {{- else }}
+      storageClassName: "{{ .Values.storage.storageClass }}"
+      {{- end }}
+      {{- end }}
+      resources:
+        requests:
+          storage: {{ .Values.container.persistentVolumeSize }}
+  - metadata:
+      name: {{ .Values.container.name }}-storage
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      {{- if .Values.storage.storageClass }}
+      {{- if (eq "-" .Values.storage.storageClass) }}
+      storageClassName: ""
+      {{- else }}
+      storageClassName: "{{ .Values.storage.storageClass }}"
+      {{- end }}
+      {{- end }}
+      resources:
+        requests:
+          storage: {{ .Values.container.persistentVolumeSize }}

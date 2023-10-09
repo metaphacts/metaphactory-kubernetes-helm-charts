@@ -1,0 +1,33 @@
+{{- if .Values.ingress.enabled }}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ .Values.container.name }}-{{ .Values.ingress.name }}
+  annotations:
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/target-type: ip
+    alb.ingress.kubernetes.io/group.name: {{ .Values.ingress.groupName }}
+    ## SSL Settings
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTPS":443}, {"HTTP":80}]'
+    {{- if .Values.ingress.enableSSLRedirect }}
+    alb.ingress.kubernetes.io/ssl-redirect: '443'
+    {{- end }}
+    alb.ingress.kubernetes.io/certificate-arn: {{ .Values.ingress.certificateArn }}
+spec:
+  ingressClassName: {{ .Values.ingress.ingressClass }}
+  tls:
+  - hosts:
+      - {{ .Values.ingress.host }}
+#    secretName: {{ .Values.ingress.certificateName }}
+  rules:
+  - host: {{ .Values.ingress.host }}
+    http:
+      paths:
+      - pathType: Prefix
+        path: "/"
+        backend:
+          service:
+            name: {{ .Values.container.name }} # the metaphactory service name
+            port:
+              number: {{ .Values.service.port }} # the metaphactory serive port, which is 80
+{{- end }}
