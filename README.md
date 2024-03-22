@@ -21,9 +21,9 @@ The configuration for an AWS Load Balancer with SSL termination is included in `
 
 The important configuration parameters in this Helm Chart are externalized in the `values.yaml` files, so one can easily change these parameters in just one place without modifying any of the provided template files.
 
-You can also define separate `values.yaml` files which contains configuration properties for specific deployment. As an example, for development one would create a copy of `values.yaml` as `development-values.yaml` and adjust the parameters accordingly. To deploy the Helm chart with the values defined in this file, the filename is passed as a parameter to the `install` command i.e. `helm install metaphactory -f values-dev.yaml .`. Without this setting, Helm will use the default values in the `values.yaml` file.
+You can also define separate `values.yaml` files which contains configuration properties for specific deployment. As an example, for development one would create a copy of `values.yaml` as `development-values.yaml` and adjust the parameters accordingly. To deploy the Helm chart with the values defined in this file, the filename is passed as a parameter to the `install` command i.e. `helm install metaphactory -f values-dev.yaml ./charts/metaphactory/`. Without this setting, Helm will use the default values in the `values.yaml` file.
 
-When updating parameters in a values file with the chart already running, the configuration can be updated by "upgrading" a chart. To pick up the new configuration without needing to restart and rerun all the configuration separately, one would run the `upgrade` command: `helm upgrade -f values.yaml metaphactory .` applies all changes from the `values.yaml` file.  
+When updating parameters in a values file with the chart already running, the configuration can be updated by "upgrading" a chart. To pick up the new configuration without needing to restart and rerun all the configuration separately, one would run the `upgrade` command: `helm upgrade -f values.yaml metaphactory ./charts/metaphactory/` applies all changes from the `values.yaml` file.  
 
 #### metaphactory Configuration
 
@@ -62,8 +62,8 @@ To create a new deployment from scratch chose from these two options:
 6. Ensure that the intended storage class is set in `values.yaml` in the `storage` part for `className:`. Use the command `kubectl get storageclass` to list available storage classes in your cluster.
 7. The default configuration creates a service of type `LoadBalancer`. This can be changed to `type: ClusterIP` or `type: NodePort` in the `service` section of `values.yaml`.
 8. Adjust the SSO and database configuration in `values.yaml` to work with the target environment (see below)
-9. Next start the metaphactory chart with `helm install -f values.yaml metaphactory .` and verify that the pod and service are running fine with `kubectl get pods` and `kubectl get service metaphactory` service should show an external IP, please note down this IP or hostname.
-Please note, that Helm will create the deployment within the default namespace. To use a different namespace, rather execute `helm install metaphactory . --namespace metaphactory-dev` instead.
+9. Next start the metaphactory chart with `helm install -f values.yaml metaphactory ./charts/metaphactory/` and verify that the pod and service are running fine with `kubectl get pods` and `kubectl get service metaphactory` service should show an external IP, please note down this IP or hostname.
+Please note, that Helm will create the deployment within the default namespace. To use a different namespace, rather execute `helm install metaphactory ./charts/metaphactory/ --namespace metaphactory-dev` instead.
 10. Verify that the application is running by connecting to `http://<external IP>` with the external IP as retrieved during step 9.
 11. Login with your SSO user. When local users are enabled (see `Configuration` below), user name and credentials can be provided in the login form available at the `/login` endpoint. The default credentials are user `admin` with password `admin`.
 
