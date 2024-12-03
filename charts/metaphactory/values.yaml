@@ -12,6 +12,7 @@ container:
     memoryRequest: "1Gi"
     cpuLimit: "500m"
     memoryLimit: "2Gi"
+  affinity: {}
 config:
   localDefaultUsers: |
     [users]
