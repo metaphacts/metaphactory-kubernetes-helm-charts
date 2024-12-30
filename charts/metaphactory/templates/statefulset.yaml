@@ -67,6 +67,13 @@ spec:
         - name: config-app
           mountPath: "/apps/config-app"
           readOnly: true
+        {{- with .Values.appsFromVolumes }}
+        {{- range $app := . }}
+        - name: {{ $app.name }}
+          mountPath: "/apps/{{ $app.name }}"
+          readOnly: true
+        {{- end }}
+        {{- end }}
         ports:
         - containerPort: {{ .Values.container.port }}
           protocol: TCP
@@ -106,6 +113,9 @@ spec:
           {{- end }}
           - key: "plugin.properties"
             path: "plugin.properties"
+      {{- with .Values.appsFromVolumes }}
+      {{- toYaml . | nindent 6 }}
+      {{- end }}
   volumeClaimTemplates:
   - metadata:
       name: {{ .Values.container.name }}-runtime-data

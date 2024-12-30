@@ -13,6 +13,15 @@ container:
     cpuLimit: "500m"
     memoryLimit: "2Gi"
   affinity: {}
+#appsFromVolumes:
+#  - name: skinapp
+#    configMap:
+#      name: skinapp
+#      items:
+#      - key: "assets--logo.svg"
+#        path: "assets/logo.svg"
+#      - key: "config--page-layout--footer.hbs"
+#        path: "config/page-layout/footer.hbs"
 config:
   localDefaultUsers: |
     [users]
@@ -69,7 +78,7 @@ database:
   assetsDatabaseName: assets
   testsDatabaseName: tests
   repositoryType: "metaphactory:GraphDBRepository"
-  address: http://graphdb-node.default.svc.cluster.local:7200 # http://<service>.<namespace>:7200
+  address: http://graphdb.default.svc.cluster.local:7200 # http://<service>.<namespace>:7200
 storage:
   customAwsClass: false  # creates a custom StorageClass for AWS
   #className: "" # set the storage class, e.g. 'default' for the default storage class or 'hostpath' for Docker Desktop
