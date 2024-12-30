@@ -11,7 +11,7 @@ Repository for maintaining Helm chart definitions for metaphactory
 
 ### Preparation
 
-To perform any deployments or updates, you will first need to log into the metaphact's Docker Hub repository. If you do not yet have access, please register for a trial on [https://metaphacts.com/get-started](https://metaphacts.com/get-started) and follow the steps for a Docker-based deployment. After registration, you will receive an email containing a user name and token to access the container image from Docker Hub which can be used to log in using `docker login`.
+To perform any deployments or updates, you will first need to log into the metaphacts' Docker Hub repository. If you do not yet have access, please register for a trial on [https://metaphacts.com/get-started](https://metaphacts.com/get-started) and follow the steps for a Docker-based deployment. After registration, you will receive an email containing a user name and token to access the container image from Docker Hub which can be used to log in using `docker login`.
 
 **IMPORTANT:** This guide is using a `StatefulSet` for the deployment of metaphactory, which includes the pod and volume claim definitions in one file and allows easy update and scale-out configurations defined in `templates/statefulset.yaml`.
 
@@ -19,15 +19,42 @@ The configuration for an AWS Load Balancer with SSL termination is included in `
 
 ### Helm-specific configuration
 
-The important configuration parameters in this Helm Chart are externalized in the `values.yaml` files, so one can easily change these parameters in just one place without modifying any of the provided template files.
+This repository provides a Helm Repository that can be added by running the
+following command:
 
-You can also define separate `values.yaml` files which contains configuration properties for specific deployment. As an example, for development one would create a copy of `values.yaml` as `development-values.yaml` and adjust the parameters accordingly. To deploy the Helm chart with the values defined in this file, the filename is passed as a parameter to the `install` command i.e. `helm install metaphactory -f values-dev.yaml ./charts/metaphactory/`. Without this setting, Helm will use the default values in the `values.yaml` file.
+```sh
+helm repo add metaphactory https://metaphacts.github.io/metaphactory-kubernetes-helm-charts/
+```
 
-When updating parameters in a values file with the chart already running, the configuration can be updated by "upgrading" a chart. To pick up the new configuration without needing to restart and rerun all the configuration separately, one would run the `upgrade` command: `helm upgrade -f values.yaml metaphactory ./charts/metaphactory/` applies all changes from the `values.yaml` file.  
+Define separate values files for your deployments, e.g.
+`development-values.yaml` and `production-values.yaml`.
+
+To deploy the Helm chart with the values defined in this file, the filename is
+passed as a parameter to the `install` command like this:
+
+```sh
+helm install metaphactory metaphactory/metaphactory -f development-values.yaml
+```
+
+New Chart Versions are automatically pushed to the Helm Repository. You can list
+available versions with.
+
+```sh
+helm search repo metaphactory --versions
+```
+
+When upgrading you need to reference the values file again, or provide the
+flag `--reuse-values`:
+
+```sh
+helm upgrade metaphactory metaphactory/metaphactory -f development-values.yaml --version 6.3.6
+```
 
 #### metaphactory Configuration
 
-The SSO configuration defined in file `values.yaml` provides an example configuration using OIDC with Azure AD for Single-Sign On (SSO) and a database configuration for an externally running GraphDB database.
+The SSO configuration defined in file `values.yaml` provides an example
+configuration using OIDC with Azure AD for Single-Sign On (SSO) and a database
+configuration for an externally running GraphDB database.
 
 ##### Authentication and Single-Sign On (SSO)
 
