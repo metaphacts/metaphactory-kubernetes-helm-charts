@@ -35,6 +35,10 @@ spec:
             key: repository.username
         - name: PLATFORM_OPTS
           value: {{ (.Values.config.env |default dict).PLATFORM_OPTS | quote }}
+        {{- if .Values.config.aws_services_prop }}
+        - name: MP_APP_AWSSERVICES
+          value: /bundled/apps/aws-services
+        {{- end }}
         image: {{ .Values.container.image }}:{{ .Values.container.tag }}
         name: {{ .Values.container.name }}
         resources:
@@ -107,6 +111,14 @@ spec:
             path: "config/shiro.ini"
           - key: "storage.prop"
             path: "config/storage.prop"
+          - key: "ui.prop"
+            path: "config/ui.prop"
+          - key: "namespaces.prop"
+            path: "config/namespaces.prop"
+          - key: "assets.prop"
+            path: "config/assets.prop"
+          - key: "aws-services.prop"
+            path: "config/aws-services.prop"
           {{- range $roleName, $roleContent := .Values.config.customRoles }}
           - key: "role-{{ $roleName }}.prop"
             path: "config/roles/role-{{ $roleName }}.prop"

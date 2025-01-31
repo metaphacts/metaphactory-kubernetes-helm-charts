@@ -8,6 +8,10 @@ data:
   shiro.ini: {{- .Values.config.localDefaultUsers | toYaml | indent 2 }}
   shiro-sso-users.ini: {{- .Values.config.ssoUsers | toYaml | indent 2 }}
   storage.prop: {{- .Values.config.storage_prop | toYaml | indent 2 }}
+  ui.prop: {{- .Values.config.ui_prop | toYaml | indent 2 }}
+  namespaces.prop: {{- .Values.config.namespaces_prop | toYaml | indent 2 }}
+  assets.prop: {{- .Values.config.assets_prop | toYaml | indent 2 }}
+  aws-services.prop: {{- .Values.config.aws_services_prop | toYaml | indent 2 }}
   plugin.properties: |
     plugin.id=config-app
     plugin.provider=Devops

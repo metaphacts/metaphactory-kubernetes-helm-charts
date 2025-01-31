@@ -67,6 +67,10 @@ config:
       -Dlog4j.configurationFile=file:///var/lib/jetty/webapps/etc/log4j2.xml
       -Dconfig.environment.securityConfigStorageId=config-app
   storage_prop: ""
+  ui_prop: ""
+  namespaces_prop: ""
+  assets_prop: ""
+  aws_services_prop: ""
 service:
   portName: http
   port: 80
