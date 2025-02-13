@@ -19,6 +19,9 @@ data:
   {{- range $roleName, $roleContent := .Values.config.customRoles }}
   role-{{ $roleName }}.prop: {{- $roleContent | toYaml | indent 4 }}
   {{- end }}
+  {{- if (.Values.rawDatabaseConfig| default dict).default | default false }}
+  repository-config: {{ .Values.rawDatabaseConfig.default | quote }}
+  {{- else }}
   repository-config: |
     # Configuration template for an Ontotext GraphDB repository
     # accessed via the RDF4J REST API
@@ -41,6 +44,10 @@ data:
           # replace with the url of the GraphDB repository
           hr:repositoryURL <{{ .Values.database.address }}/repositories/{{ .Values.database.defaultDatabaseName }}>
        ].
+  {{- end }}
+  {{- if (.Values.rawDatabaseConfig |default dict).tests | default false }}
+  repository-tests-config: {{ .Values.rawDatabaseConfig.tests | quote }}
+  {{- else }}
   repository-tests-config: |
     # Configuration template for an Ontotext GraphDB repository
     # accessed via the RDF4J REST API
@@ -63,6 +70,10 @@ data:
           # replace with the url of the GraphDB repository
           hr:repositoryURL <{{ .Values.database.address }}/repositories/{{ .Values.database.testsDatabaseName }}>
        ].
+  {{- end }}
+  {{- if (.Values.rawDatabaseConfig |default dict).assets | default false }}
+  repository-assets-config: {{ .Values.rawDatabaseConfig.assets | quote }}
+  {{- else }}
   repository-assets-config: |
     # Configuration template for an Ontotext GraphDB repository
     # accessed via the RDF4J REST API
@@ -89,3 +100,4 @@ data:
           mph:extensionType "metaphacts:NamedGraphSecurity";
           mph:strategy "assets"
        ] .
+  {{- end }}

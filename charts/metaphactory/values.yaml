@@ -83,6 +83,18 @@ database:
   testsDatabaseName: tests
   repositoryType: "metaphactory:GraphDBRepository"
   address: http://graphdb.default.svc.cluster.local:7200 # http://<service>.<namespace>:7200
+# If you need to tweak the TTL files for the database connection beyond the
+# options above, you can use rawDatabaseConfig for one or all repositories
+# rawDatabaseConfig:
+#   default: |
+#     @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#>.
+#     …
+#   assets: |
+#     @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#>.
+#     …
+#   tests: |
+#     @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#>.
+#     …
 storage:
   customAwsClass: false  # creates a custom StorageClass for AWS
   #className: "" # set the storage class, e.g. 'default' for the default storage class or 'hostpath' for Docker Desktop
