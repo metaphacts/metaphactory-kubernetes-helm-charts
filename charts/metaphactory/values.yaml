@@ -13,6 +13,7 @@ container:
     cpuLimit: "500m"
     memoryLimit: "2Gi"
   affinity: {}
+  envFrom: []
 #appsFromVolumes:
 #  - name: skinapp
 #    configMap:

@@ -39,6 +39,9 @@ spec:
         - name: MP_APP_AWSSERVICES
           value: /bundled/apps/aws-services
         {{- end }}
+        {{- with .Values.container.envFrom }}
+        envFrom: {{- toYaml . | nindent 10 }}
+        {{- end }}
         image: {{ .Values.container.image }}:{{ .Values.container.tag }}
         name: {{ .Values.container.name }}
         resources:
