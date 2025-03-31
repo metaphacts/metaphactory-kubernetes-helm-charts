@@ -6,6 +6,17 @@ Note: when updating to a newer release of metaphactory, also regard the informat
 
 If not mentioned otherwise, the Helm chart definitions are backwards compatible to the previous released version.
 
+## 2025-03-28 (Release 5.7.0)
+
+The docker tags have been updated to the 5.7.0 release of metaphactory.
+
+Additional changes
+
+- improved configuration for repositories
+- improved options to define metaphactory system configuration via ConfigMap
+- improved ability to mount apps from volumes
+
+
 ## 2024-12-20 (Release 5.6.0)
 
 The docker tags have been updated to the 5.6.0 release of metaphactory.
