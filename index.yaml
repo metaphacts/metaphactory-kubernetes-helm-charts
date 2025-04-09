@@ -2,6 +2,14 @@ apiVersion: v1
 entries:
   metaphactory:
   - apiVersion: v1
+    created: "2025-04-09T12:38:06.365146852Z"
+    description: Helm Chart for metaphactory
+    digest: 0ba537f24e8cc938b6e01bbbe209f5538ad268ab2ff935b3977d266e8ab2afd7
+    name: metaphactory
+    urls:
+    - https://github.com/metaphacts/metaphactory-kubernetes-helm-charts/releases/download/metaphactory-1.7.1/metaphactory-1.7.1.tgz
+    version: 1.7.1
+  - apiVersion: v1
     created: "2025-03-31T11:49:02.87885631Z"
     description: Helm Chart for metaphactory
     digest: 85144f5f25aaefbe8c50b9365447e0d7765a78a96b6a7f7b1d325b88733bcdb6
@@ -41,4 +49,4 @@ entries:
     urls:
     - https://github.com/metaphacts/metaphactory-kubernetes-helm-charts/releases/download/metaphactory-1.1.7/metaphactory-1.1.7.tgz
     version: 1.1.7
-generated: "2025-03-31T11:49:02.878880585Z"
+generated: "2025-04-09T12:38:06.365169315Z"
