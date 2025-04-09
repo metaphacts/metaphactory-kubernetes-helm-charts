@@ -72,6 +72,7 @@ config:
   namespaces_prop: ""
   assets_prop: ""
   aws_services_prop: ""
+  eia_physical_prop: ""
 service:
   portName: http
   port: 80
@@ -97,7 +98,7 @@ database:
 #     @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#>.
 #     …
 storage:
-  customAwsClass: false  # creates a custom StorageClass for AWS
+  customAwsClass: false # creates a custom StorageClass for AWS
   #className: "" # set the storage class, e.g. 'default' for the default storage class or 'hostpath' for Docker Desktop
   reclaimPolicy: Retain
 ingress:

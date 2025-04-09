@@ -39,6 +39,10 @@ spec:
         - name: MP_APP_AWSSERVICES
           value: /bundled/apps/aws-services
         {{- end }}
+        {{- if .Values.config.eia_physical_prop }}
+        - name: MP_APP_EIA_PHYSICAL_LAYER
+          value: /bundled/apps/eia-physical-layer
+        {{- end }}
         {{- with .Values.container.envFrom }}
         envFrom: {{- toYaml . | nindent 10 }}
         {{- end }}
