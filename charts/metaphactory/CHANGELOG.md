@@ -6,6 +6,15 @@ Note: when updating to a newer release of metaphactory, also regard the informat
 
 If not mentioned otherwise, the Helm chart definitions are backwards compatible to the previous released version.
 
+## 2025-07-10 (Release 5.8.0)
+
+The docker tags have been updated to the 5.8.0 release of metaphactory.
+
+Additional changes
+
+- improved configuration to support activating bundled apps like eia-physical-layer and ai-services
+
+
 ## 2025-03-28 (Release 5.7.0)
 
 The docker tags have been updated to the 5.7.0 release of metaphactory.
