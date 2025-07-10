@@ -71,6 +71,7 @@ config:
   ui_prop: ""
   namespaces_prop: ""
   assets_prop: ""
+  ai_services_prop: ""
   aws_services_prop: ""
   eia_physical_prop: ""
 service:
