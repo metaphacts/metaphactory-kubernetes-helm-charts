@@ -12,6 +12,19 @@ container:
     memoryRequest: "1Gi"
     cpuLimit: "500m"
     memoryLimit: "2Gi"
+  readinessProbe:
+    httpGet:
+      path: /login
+      port: 8080
+    initialDelaySeconds: 120
+    failureThreshold: 10
+    periodSeconds: 10
+  livenessProbe:
+    httpGet:
+      path: /login
+      port: 8080
+    failureThreshold: 3
+    periodSeconds: 120
   affinity: {}
   envFrom: []
 #appsFromVolumes:

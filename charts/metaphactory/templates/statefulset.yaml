@@ -59,19 +59,12 @@ spec:
           limits:
             cpu: {{ .Values.container.resources.cpuLimit }}
             memory: {{ .Values.container.resources.memoryLimit }}
-        readinessProbe:
-          httpGet:
-            path: /login
-            port: 8080
-          initialDelaySeconds: 120
-          failureThreshold: 10
-          periodSeconds: 10
-        livenessProbe:
-          httpGet:
-            path: /login
-            port: 8080
-          failureThreshold: 3
-          periodSeconds: 120
+        {{- with .Values.container.readinessProbe }}
+        readinessProbe: {{- toYaml . | nindent 10 }}
+        {{- end }}
+        {{- with .Values.container.livenessProbe }}
+        livenessProbe: {{- toYaml . | nindent 10 }}
+        {{- end }}
         volumeMounts:
         - mountPath: /runtime-data
           name: {{ .Values.container.name }}-runtime-data
