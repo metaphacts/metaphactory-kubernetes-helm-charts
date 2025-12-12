@@ -96,6 +96,7 @@ replicas: 1
 database:
   defaultDatabaseName: metaphactory
   assetsDatabaseName: assets
+  assetsSecurityStrategy: assets
   testsDatabaseName: tests
   repositoryType: "metaphactory:GraphDBRepository"
   address: http://graphdb.default.svc.cluster.local:7200 # http://<service>.<namespace>:7200

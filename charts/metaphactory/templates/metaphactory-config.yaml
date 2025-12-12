@@ -98,6 +98,6 @@ data:
        ];
        mph:extension [
           mph:extensionType "metaphacts:NamedGraphSecurity";
-          mph:strategy "assets"
+          mph:strategy {{ .Values.database.assetsSecurityStrategy | default "assets" | quote }}
        ] .
   {{- end }}
