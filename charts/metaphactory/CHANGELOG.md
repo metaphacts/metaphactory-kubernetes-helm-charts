@@ -6,6 +6,15 @@ Note: when updating to a newer release of metaphactory, also regard the informat
 
 If not mentioned otherwise, the Helm chart definitions are backwards compatible to the previous released version.
 
+## 2026-01-12 (Release 5.10.1)
+
+The docker tags have been updated to the 5.10.1 release of metaphactory.
+
+Additional changes
+
+- fix for storageClass name
+- updated liveness/readiness endpoints
+
 ## 2025-12-19 (Release 5.10.0)
 
 The docker tags have been updated to the 5.10.0 release of metaphactory.
