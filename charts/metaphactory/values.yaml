@@ -114,7 +114,7 @@ database:
 #     …
 storage:
   customAwsClass: false # creates a custom StorageClass for AWS
-  #className: "" # set the storage class, e.g. 'default' for the default storage class or 'hostpath' for Docker Desktop
+  #storageClass: "" # set the storage class, e.g. 'default' for the default storage class or 'hostpath' for Docker Desktop
   reclaimPolicy: Retain
 ingress:
   enabled: false

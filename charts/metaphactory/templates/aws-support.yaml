@@ -1,9 +1,9 @@
 # use this class to enable aws ebs volumes in an EKS cluster
-{{- if and .Values.storage.customAwsClass .Values.storage.className }}
+{{- if and .Values.storage.customAwsClass .Values.storage.storageClass }}
 apiVersion: storage.k8s.io/v1
 kind: StorageClass
 metadata:
-  name: {{ .Values.storage.className }}
+  name: {{ .Values.storage.storageClass }}
 provisioner: ebs.csi.aws.com
 reclaimPolicy: {{ .Values.storage.reclaimPolicy }}
 allowVolumeExpansion: true
