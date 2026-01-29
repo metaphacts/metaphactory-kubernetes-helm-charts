@@ -52,13 +52,9 @@ spec:
         {{- end }}
         image: {{ .Values.container.image }}:{{ .Values.container.tag }}
         name: {{ .Values.container.name }}
-        resources:
-          requests:
-            cpu: {{ .Values.container.resources.cpuRequest }}
-            memory: {{ .Values.container.resources.memoryRequest }}
-          limits:
-            cpu: {{ .Values.container.resources.cpuLimit }}
-            memory: {{ .Values.container.resources.memoryLimit }}
+        {{- with .Values.container.resources }}
+        resources: {{ toYaml . | nindent 10 }}
+        {{- end }}
         {{- with .Values.container.readinessProbe }}
         readinessProbe: {{- toYaml . | nindent 10 }}
         {{- end }}

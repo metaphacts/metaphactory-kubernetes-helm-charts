@@ -8,10 +8,12 @@ container:
   credentialsSecretName: credentials
   persistentVolumeSize: 1Gi
   resources:
-    cpuRequest: "200m"
-    memoryRequest: "1Gi"
-    cpuLimit: "500m"
-    memoryLimit: "2Gi"
+    limits:
+      #cpu: 500m
+      memory: 2Gi
+    requests:
+      #cpu: 200m
+      memory: 1Gi
   readinessProbe:
     httpGet:
       path: /rest/status
