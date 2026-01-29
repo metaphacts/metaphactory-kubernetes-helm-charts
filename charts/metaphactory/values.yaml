@@ -3,7 +3,7 @@ container:
   name: metaphactory
   port: 8080
   image: metaphacts/metaphactory
-  tag: 5.10.1
+  tag: 5.10.2
   imagePullSecretName: regcred
   credentialsSecretName: credentials
   persistentVolumeSize: 1Gi
