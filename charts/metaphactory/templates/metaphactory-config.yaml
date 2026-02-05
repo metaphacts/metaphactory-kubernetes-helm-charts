@@ -12,6 +12,10 @@ data:
   namespaces.prop: {{- .Values.config.namespaces_prop | toYaml | indent 2 }}
   assets.prop: {{- .Values.config.assets_prop | toYaml | indent 2 }}
   aws-services.prop: {{- .Values.config.aws_services_prop | toYaml | indent 2 }}
+  {{- if .Values.config.jettyCustomIni }}
+  custom.ini: |
+    {{- .Values.config.jettyCustomIni | nindent 4 }}
+  {{- end }}
   plugin.properties: |
     plugin.id=config-app
     plugin.provider=Devops

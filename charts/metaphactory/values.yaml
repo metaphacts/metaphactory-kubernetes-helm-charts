@@ -89,6 +89,9 @@ config:
   ai_services_prop: ""
   aws_services_prop: ""
   eia_physical_prop: ""
+  # Content for /var/lib/jetty/start.d/custom.ini
+  jettyCustomIni: |
+    # jetty.httpConfig.idleTimeout=30000
 service:
   portName: http
   port: 80

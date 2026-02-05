@@ -71,6 +71,11 @@ spec:
         - name: config-app
           mountPath: "/apps/config-app"
           readOnly: true
+        {{- if .Values.config.jettyCustomIni }}
+        - name: jetty-custom-config
+          mountPath: /var/lib/jetty/start.d/custom.ini
+          subPath: custom.ini
+        {{- end }}
         {{- with .Values.appsFromVolumes }}
         {{- range $app := . }}
         - name: {{ $app.name }}
@@ -125,6 +130,14 @@ spec:
           {{- end }}
           - key: "plugin.properties"
             path: "plugin.properties"
+      {{- if .Values.config.jettyCustomIni }}
+      - name: jetty-custom-config
+        configMap:
+          name: metaphactory-config
+          items:
+          - key: "custom.ini"
+            path: "custom.ini"
+      {{- end }}
       {{- with .Values.appsFromVolumes }}
       {{- toYaml . | nindent 6 }}
       {{- end }}
