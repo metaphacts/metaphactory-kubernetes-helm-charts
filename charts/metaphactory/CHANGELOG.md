@@ -6,7 +6,16 @@ Note: when updating to a newer release of metaphactory, also regard the informat
 
 If not mentioned otherwise, the Helm chart definitions are backwards compatible to the previous released version.
 
-## 2026-02-05 (Release 5.10.3)
+## 2026-02-11 (Release 5.10.3)
+
+The docker tags have been updated to the 5.10.3 release of metaphactory.
+
+Additional changes
+
+- Add support for enabling jetty request logs in the container
+
+
+## 2026-02-05 (Release 5.10.2)
 
 - Add ability to inject custom Jetty configuration into the container
 

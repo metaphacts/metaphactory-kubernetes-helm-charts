@@ -76,6 +76,15 @@ spec:
           mountPath: /var/lib/jetty/start.d/custom.ini
           subPath: custom.ini
         {{- end }}
+        {{- if .Values.config.jettyRequestLogIni }}
+        - name: jetty-requestlog-config
+          mountPath: /var/lib/jetty/start.d/requestlog.ini
+          subPath: requestlog.ini
+        {{- end }}
+        {{- if .Values.config.jettyRequestLogIni }}
+        - name: {{ .Values.container.name }}-jetty-logs
+          mountPath: /var/lib/jetty/logs
+        {{- end }}
         {{- with .Values.appsFromVolumes }}
         {{- range $app := . }}
         - name: {{ $app.name }}
@@ -138,6 +147,14 @@ spec:
           - key: "custom.ini"
             path: "custom.ini"
       {{- end }}
+      {{- if .Values.config.jettyRequestLogIni }}
+      - name: jetty-requestlog-config
+        configMap:
+          name: metaphactory-config
+          items:
+          - key: "requestlog.ini"
+            path: "requestlog.ini"
+      {{- end }}
       {{- with .Values.appsFromVolumes }}
       {{- toYaml . | nindent 6 }}
       {{- end }}
@@ -184,3 +201,19 @@ spec:
       resources:
         requests:
           storage: {{ .Values.container.persistentVolumeSize }}
+  {{- if .Values.config.jettyRequestLogIni }}
+  - metadata:
+      name: {{ .Values.container.name }}-jetty-logs
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      {{- if .Values.storage.storageClass }}
+      {{- if (eq "-" .Values.storage.storageClass) }}
+      storageClassName: ""
+      {{- else }}
+      storageClassName: "{{ .Values.storage.storageClass }}"
+      {{- end }}
+      {{- end }}
+      resources:
+        requests:
+          storage: {{ .Values.container.logsVolumeSize }}
+  {{- end }}

@@ -3,10 +3,12 @@ container:
   name: metaphactory
   port: 8080
   image: metaphacts/metaphactory
-  tag: 5.10.2
+  tag: 5.10.3
   imagePullSecretName: regcred
   credentialsSecretName: credentials
   persistentVolumeSize: 1Gi
+  # Size for the dedicated log volume (Only created if jettyRequestLogIni is set)
+  logsVolumeSize: 1Gi
   resources:
     limits:
       #cpu: 500m
@@ -92,6 +94,21 @@ config:
   # Content for /var/lib/jetty/start.d/custom.ini
   jettyCustomIni: |
     # jetty.httpConfig.idleTimeout=30000
+
+  # Jetty Request Log Configuration
+  # To enable request logging (and create the dedicated storage volume),
+  # uncomment the block below and remove the empty string definition.
+  #
+  # Example Configuration:
+  # jettyRequestLogIni: |
+  #   --module=requestlog
+  #   jetty.requestlog.dir=logs
+  #   jetty.requestlog.filePath=${jetty.requestlog.dir}/yyyy_mm_dd.request.log
+  #   jetty.requestlog.retainDays=7
+  #   jetty.requestlog.formatString=%{client}a - %u %{dd/MMM/yyyy:HH:mm:ss ZZZ|UTC}t "%r" %s %O %{ms}Tms traceparent=%{traceparent}i
+
+  # Leave as empty string "" to DISABLE jetty logs and prevent volume creation.
+  jettyRequestLogIni: ""
 service:
   portName: http
   port: 80

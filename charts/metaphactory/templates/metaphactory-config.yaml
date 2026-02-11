@@ -16,6 +16,10 @@ data:
   custom.ini: |
     {{- .Values.config.jettyCustomIni | nindent 4 }}
   {{- end }}
+  {{- if .Values.config.jettyRequestLogIni }}
+  requestlog.ini: |
+    {{- .Values.config.jettyRequestLogIni | nindent 4 }}
+  {{- end }}
   plugin.properties: |
     plugin.id=config-app
     plugin.provider=Devops
