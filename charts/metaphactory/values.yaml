@@ -59,6 +59,10 @@ config:
   ssoUsers: |
     [users]
     #myuser@example.com = admin,root,repository-admin
+  pluginProperties: |
+    plugin.id=config-app
+    plugin.provider=Devops
+    plugin.version=1.0.0
   environmentProp: |
     shiroAuthenticationFilter=authcBasic,oidc
     enableLocalUsers=true

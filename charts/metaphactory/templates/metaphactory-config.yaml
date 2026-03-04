@@ -20,10 +20,7 @@ data:
   requestlog.ini: |
     {{- .Values.config.jettyRequestLogIni | nindent 4 }}
   {{- end }}
-  plugin.properties: |
-    plugin.id=config-app
-    plugin.provider=Devops
-    plugin.version=1.0.0
+  plugin.properties: {{- .Values.config.pluginProperties | toYaml | indent 2 }}
   {{- range $roleName, $roleContent := .Values.config.customRoles }}
   role-{{ $roleName }}.prop: {{- $roleContent | toYaml | indent 4 }}
   {{- end }}

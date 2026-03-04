@@ -6,6 +6,11 @@ Note: when updating to a newer release of metaphactory, also regard the informat
 
 If not mentioned otherwise, the Helm chart definitions are backwards compatible to the previous released version.
 
+## 2026-03-04 (Release 5.10.3)
+
+- Add ability to configure the plugin.properties file
+
+
 ## 2026-02-11 (Release 5.10.3)
 
 The docker tags have been updated to the 5.10.3 release of metaphactory.
