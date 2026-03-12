@@ -3,12 +3,18 @@ container:
   name: metaphactory
   port: 8080
   image: metaphacts/metaphactory
-  tag: 5.10.3
+  tag: 5.10.4
   imagePullSecretName: regcred
   credentialsSecretName: credentials
   persistentVolumeSize: 1Gi
   # Size for the dedicated log volume (Only created if jettyRequestLogIni is set)
   logsVolumeSize: 1Gi
+  # JMX Metrics Configuration
+  # To enable JMX/Prometheus metrics, BOTH jmx_image (here) and
+  # jmx_java_tool_options (under config:) must be set together.
+  # The init container copies the JMX agent jar from this image into /apps/jmx/
+  # before Metaphactory starts.
+  jmx_image: ""
   resources:
     limits:
       #cpu: 500m
@@ -113,6 +119,21 @@ config:
 
   # Leave as empty string "" to DISABLE jetty logs and prevent volume creation.
   jettyRequestLogIni: ""
+
+  # Jetty Statistics Configuration
+  # To enable statistics (e.g. for JMX/metrics), uncomment the block below and remove the empty string definition.
+  #
+  # Example Configuration:
+  # jettyStatisticsIni: |
+  #   --module=statistics
+  #
+  # Leave as empty string "" to DISABLE jetty statistics.
+  jettyStatisticsIni: ""
+  # JMX Java Tool Options
+  # Part 2 of JMX setup - see also container.jmx_image above.
+  # Activates the JMX Prometheus agent on the Metaphactory JVM.
+  # Metrics will be exposed at :9404/metrics once both settings are configured.
+  jmx_java_tool_options: "" #-javaagent:/apps/jmx/jmx_prometheus_javaagent-1.5.0.jar=9404:/apps/jmx/config.yaml
 service:
   portName: http
   port: 80

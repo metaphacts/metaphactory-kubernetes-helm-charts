@@ -6,6 +6,16 @@ Note: when updating to a newer release of metaphactory, also regard the informat
 
 If not mentioned otherwise, the Helm chart definitions are backwards compatible to the previous released version.
 
+## 2026-12-04 (Release 5.10.4)
+
+The docker tags have been updated to the 5.10.4 release of metaphactory.
+
+Additional changes
+
+- Add support for enabling jetty statistics module in the container
+- Add support for enabling JMX monitoring metrics in the container
+
+
 ## 2026-03-04 (Release 5.10.3)
 
 - Add ability to configure the plugin.properties file

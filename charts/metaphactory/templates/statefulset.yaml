@@ -47,6 +47,10 @@ spec:
         - name: MP_APP_EIA_PHYSICAL_LAYER
           value: /bundled/apps/eia-physical-layer
         {{- end }}
+        {{- if .Values.config.jmx_java_tool_options }}
+        - name: JAVA_TOOL_OPTIONS
+          value: {{ .Values.config.jmx_java_tool_options }}
+        {{- end }}
         {{- with .Values.container.envFrom }}
         envFrom: {{- toYaml . | nindent 10 }}
         {{- end }}
@@ -81,9 +85,19 @@ spec:
           mountPath: /var/lib/jetty/start.d/requestlog.ini
           subPath: requestlog.ini
         {{- end }}
+        {{- if .Values.config.jettyStatisticsIni }}
+        - name: jetty-statistics-config
+          mountPath: /var/lib/jetty/start.d/statistics.ini
+          subPath: statistics.ini
+        {{- end }}
         {{- if .Values.config.jettyRequestLogIni }}
         - name: {{ .Values.container.name }}-jetty-logs
           mountPath: /var/lib/jetty/logs
+        {{- end }}
+        {{- if .Values.config.jmxIni }}
+        - name: jetty-jmx-config
+          mountPath: /var/lib/jetty/start.d/jmx.ini
+          subPath: jmx.ini
         {{- end }}
         {{- with .Values.appsFromVolumes }}
         {{- range $app := . }}
@@ -102,6 +116,14 @@ spec:
         volumeMounts:
         - mountPath: /runtime-target
           name: {{ .Values.container.name }}-runtime-data
+      {{- if .Values.container.jmx_image }}
+      - image: {{ .Values.container.jmx_image }}
+        name: jmx-init
+        command: ["sh","-c","mkdir -p /apps/jmx && cp /copyfile/agent/* /apps/jmx"]
+        volumeMounts:
+        - mountPath: /apps
+          name: {{ .Values.container.name }}-apps
+      {{- end }}
       imagePullSecrets:
       - name: {{ .Values.container.imagePullSecretName }}
       volumes:
@@ -147,6 +169,14 @@ spec:
           - key: "custom.ini"
             path: "custom.ini"
       {{- end }}
+      {{- if .Values.config.jmxIni }}
+      - name: jetty-jmx-config
+        configMap:
+          name: metaphactory-config
+          items:
+          - key: "jmx.ini"
+            path: "jmx.ini"
+      {{- end }}
       {{- if .Values.config.jettyRequestLogIni }}
       - name: jetty-requestlog-config
         configMap:
@@ -154,6 +184,14 @@ spec:
           items:
           - key: "requestlog.ini"
             path: "requestlog.ini"
+      {{- end }}
+      {{- if .Values.config.jettyStatisticsIni }}
+      - name: jetty-statistics-config
+        configMap:
+          name: metaphactory-config
+          items:
+          - key: "statistics.ini"
+            path: "statistics.ini"
       {{- end }}
       {{- with .Values.appsFromVolumes }}
       {{- toYaml . | nindent 6 }}

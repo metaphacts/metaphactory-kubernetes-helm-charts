@@ -20,7 +20,15 @@ data:
   requestlog.ini: |
     {{- .Values.config.jettyRequestLogIni | nindent 4 }}
   {{- end }}
+  {{- if .Values.config.jettyStatisticsIni }}
+  statistics.ini: |
+    {{- .Values.config.jettyStatisticsIni | nindent 4 }}
+  {{- end }}
   plugin.properties: {{- .Values.config.pluginProperties | toYaml | indent 2 }}
+  {{- if .Values.config.jmxIni }}
+  jmx.ini: |
+    {{- .Values.config.jmxIni | nindent 4 }}
+  {{- end }}
   {{- range $roleName, $roleContent := .Values.config.customRoles }}
   role-{{ $roleName }}.prop: {{- $roleContent | toYaml | indent 4 }}
   {{- end }}
