@@ -14,6 +14,9 @@ container:
   # jmx_java_tool_options (under config:) must be set together.
   # The init container copies the JMX agent jar from this image into /apps/jmx/
   # before Metaphactory starts.
+  # Optionally set config.jmxIni to also enable Jetty-specific MBeans.
+  # Example Configuration:
+  # jmx_image: "your-registry/jmx-agent:1.5.0"
   jmx_image: ""
   resources:
     limits:
@@ -129,6 +132,13 @@ config:
   #
   # Leave as empty string "" to DISABLE jetty statistics.
   jettyStatisticsIni: ""
+  # Jetty JMX Module - enables Jetty internals as JMX MBeans (thread pools, connectors, request stats).
+  # When combined with jmx_java_tool_options, these MBeans are also exposed as Prometheus metrics.
+  # Example Configuration:
+  # jmxIni: |
+  #   --module=jmx
+  # Leave as empty string "" to DISABLE Jetty JMX module.
+  jmxIni: ""
   # JMX Java Tool Options
   # Part 2 of JMX setup - see also container.jmx_image above.
   # Activates the JMX Prometheus agent on the Metaphactory JVM.
