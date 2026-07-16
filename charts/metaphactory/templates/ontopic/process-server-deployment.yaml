@@ -1,0 +1,84 @@
+{{- if .Values.ontopic.enabled }}
+{{- $jdbc := .Values.ontopic.processServer.jdbc }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ontopic-process-server
+  labels:
+    app: ontopic-process-server
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ontopic-process-server
+  template:
+    metadata:
+      labels:
+        app: ontopic-process-server
+    spec:
+      containers:
+      - name: process-server
+        image: {{ .Values.ontopic.processServer.image | default (printf "%s:process-server-%s" .Values.ontopic.repository .Values.ontopic.version) }}
+        env:
+        - name: STORE_SERVICE_HOST
+          value: ontopic-store-server
+        - name: STORE_SERVICE_PORT
+          value: "3000"
+        - name: ENABLE_PREFIX_IMPORT
+          value: {{ .Values.ontopic.processServer.env.enablePrefixImport | quote }}
+        {{- range .Values.ontopic.processServer.extraEnv }}
+        - name: {{ .name }}
+          value: {{ .value | quote }}
+        {{- end }}
+        {{- with .Values.ontopic.processServer.resources }}
+        resources: {{- toYaml . | nindent 10 }}
+        {{- end }}
+        {{- if or $jdbc.existingClaim $jdbc.urls }}
+        volumeMounts:
+        - name: jdbc
+          mountPath: /app/jdbc
+          readOnly: true
+        {{- end }}
+        ports:
+        - containerPort: 8666
+          protocol: TCP
+        readinessProbe:
+          httpGet:
+            path: /process-api/healthcheck
+            port: 8666
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          failureThreshold: 10
+        livenessProbe:
+          httpGet:
+            path: /process-api/healthcheck
+            port: 8666
+          initialDelaySeconds: 30
+          periodSeconds: 30
+      {{- if and $jdbc.urls (not $jdbc.existingClaim) }}
+      initContainers:
+      - name: jdbc-init
+        image: {{ .Values.container.image }}:{{ .Values.container.tag }}
+        command: ["sh", "-c"]
+        args:
+        - |
+          {{- range $jdbc.urls }}
+          curl -fL -o /jdbc/{{ .name }}.jar {{ .url }}
+          {{- end }}
+        volumeMounts:
+        - name: jdbc
+          mountPath: /jdbc
+      {{- end }}
+      {{- if or $jdbc.existingClaim $jdbc.urls }}
+      volumes:
+      - name: jdbc
+        {{- if $jdbc.existingClaim }}
+        persistentVolumeClaim:
+          claimName: {{ $jdbc.existingClaim }}
+        {{- else }}
+        emptyDir: {}
+        {{- end }}
+      {{- end }}
+      imagePullSecrets:
+      - name: {{ .Values.container.imagePullSecretName }}
+{{- end }}

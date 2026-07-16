@@ -1,0 +1,147 @@
+{{- if .Values.ontopic.enabled }}
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: ontopic-store-server
+  labels:
+    app: ontopic-store-server
+spec:
+  serviceName: ontopic-store-server
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ontopic-store-server
+  template:
+    metadata:
+      labels:
+        app: ontopic-store-server
+    spec:
+      containers:
+      - name: store-server
+        image: {{ .Values.ontopic.storeServer.image | default (printf "%s:store-server-%s" .Values.ontopic.repository .Values.ontopic.version) }}
+        env:
+        - name: NODE_ENV
+          value: "production"
+        - name: DB_RESET
+          value: "false"
+        - name: DB_MIGRATE
+          value: "true"
+        - name: DB_SEED
+          value: "false"
+        - name: DATABASE_HOST
+          value: ontopic-store-server-db
+        - name: DATABASE_PORT
+          value: "5432"
+        - name: DATABASE_NAME
+          value: internal
+        - name: DATABASE_USER
+          value: postgres
+        - name: DATABASE_PASSWORD_FILE
+          value: /run/secrets/app/db-password
+        - name: CASBIN_STORE_HOST
+          value: ontopic-store-server-db
+        - name: CASBIN_STORE_PORT
+          value: "5432"
+        - name: CASBIN_STORE_USER
+          value: postgres
+        - name: CASBIN_STORE_PASSWORD_FILE
+          value: /run/secrets/app/db-password
+        - name: ONTOPIC_SERVER_HOST
+          value: ontopic-server
+        - name: ONTOPIC_SERVER_WEB_API_PORT
+          value: {{ .Values.ontopic.ontopicServer.ports.webApi | quote }}
+        - name: ONTOPIC_SERVER_POSTGRES_PORT
+          value: {{ .Values.ontopic.ontopicServer.ports.postgresWire | quote }}
+        - name: PROCESS_SERVICE_HOST
+          value: ontopic-process-server
+        - name: PROCESS_SERVICE_PORT
+          value: "8666"
+        - name: DB_CLIENT
+          value: pg
+        - name: ENABLE_TRACKING
+          value: "false"
+        - name: ENABLE_REPORTING
+          value: "false"
+        - name: CLEANUP_ORPHANED_PROJECTS_ON_STARTUP
+          value: "false"
+        - name: ENABLE_SEMANTIC_SQL
+          value: {{ .Values.ontopic.storeServer.env.enableSemanticSql | quote }}
+        - name: ONTOPIC_SAMPLE_DB
+          value: {{ .Values.ontopic.storeServer.env.ontopicSampleDb | quote }}
+        - name: ENABLE_GIT_REPO
+          value: {{ .Values.ontopic.storeServer.env.enableGitRepo | quote }}
+        - name: ENABLE_MATERIALIZATION
+          value: {{ .Values.ontopic.storeServer.env.enableMaterialization | quote }}
+        - name: ENABLE_SCOPES
+          value: {{ .Values.ontopic.storeServer.env.enableScopes | quote }}
+        - name: ONTOPIC_ENABLE_AUTHENTICATION
+          value: {{ .Values.ontopic.storeServer.env.enableAuthentication | default false | quote }}
+        {{- range .Values.ontopic.storeServer.extraEnv }}
+        - name: {{ .name }}
+          value: {{ .value | quote }}
+        {{- end }}
+        {{- with .Values.ontopic.storeServer.resources }}
+        resources: {{- toYaml . | nindent 10 }}
+        {{- end }}
+        volumeMounts:
+        - name: store-secrets
+          mountPath: /run/secrets/app
+          readOnly: true
+        - name: ontopic-store-server-docs
+          mountPath: /app/docs
+        - name: ontopic-store-server-repos
+          mountPath: /app/repos
+        ports:
+        - containerPort: 3000
+          protocol: TCP
+        - containerPort: 3001
+          protocol: TCP
+        readinessProbe:
+          httpGet:
+            path: /internal-store-api/healthcheck
+            port: 3000
+          initialDelaySeconds: 15
+          periodSeconds: 10
+          failureThreshold: 10
+        livenessProbe:
+          httpGet:
+            path: /internal-store-api/healthcheck
+            port: 3000
+          initialDelaySeconds: 60
+          periodSeconds: 30
+      volumes:
+      - name: store-secrets
+        secret:
+          secretName: {{ .Values.ontopic.storeServer.secretName }}
+      imagePullSecrets:
+      - name: {{ .Values.container.imagePullSecretName }}
+  volumeClaimTemplates:
+  - metadata:
+      name: ontopic-store-server-docs
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      {{- if .Values.ontopic.storage.storageClass }}
+      {{- if (eq "-" .Values.ontopic.storage.storageClass) }}
+      storageClassName: ""
+      {{- else }}
+      storageClassName: "{{ .Values.ontopic.storage.storageClass }}"
+      {{- end }}
+      {{- end }}
+      resources:
+        requests:
+          storage: {{ .Values.ontopic.storeServer.persistence.docsSize }}
+  - metadata:
+      name: ontopic-store-server-repos
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      {{- if .Values.ontopic.storage.storageClass }}
+      {{- if (eq "-" .Values.ontopic.storage.storageClass) }}
+      storageClassName: ""
+      {{- else }}
+      storageClassName: "{{ .Values.ontopic.storage.storageClass }}"
+      {{- end }}
+      {{- end }}
+      resources:
+        requests:
+          storage: {{ .Values.ontopic.storeServer.persistence.reposSize }}
+{{- end }}

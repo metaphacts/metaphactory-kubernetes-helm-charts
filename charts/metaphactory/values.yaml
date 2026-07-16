@@ -3,7 +3,7 @@ container:
   name: metaphactory
   port: 8080
   image: metaphacts/metaphactory
-  tag: 5.11.0
+  tag: 6.0.0
   imagePullSecretName: regcred
   credentialsSecretName: credentials
   persistentVolumeSize: 1Gi
@@ -181,3 +181,157 @@ ingress:
   ingressClass: alb
   host: test.example.com
   enableSSLRedirect: true
+
+# Ontopic suite (optional). Powers the mapping/virtualization capabilities of the
+# Semantic Layer: AI-assisted R2RML mapping authoring and SPARQL-over-SQL endpoints.
+# Disabled by default - set `enabled: true` to deploy the 6 Ontopic Pods alongside
+# metaphactory. Ontopic is reverse-proxied through metaphactory's bundled app and
+# is never directly exposed via its own Ingress - all Ontopic Services are
+# ClusterIP-only and (by default) further restricted via NetworkPolicy so that only
+# metaphactory and the other Ontopic pods that need to talk to each other can reach
+# them. NOTE: NetworkPolicy is only enforced if your cluster's CNI implements it
+# (Calico, Cilium, most managed-cloud CNIs do; plain Flannel does not - unsupported
+# NetworkPolicy objects are silently never enforced, with no error). See README.md.
+ontopic:
+  enabled: false
+
+  networkPolicy:
+    # Restricts which Ontopic pods may be contacted by which other pods (see README
+    # for the full allow-list matrix). Leave enabled unless your cluster's CNI
+    # doesn't support NetworkPolicy (in which case this has no effect either way).
+    enabled: true
+
+  # Shared repository/tag suffix for the 5 metaphacts-built Ontopic images
+  # (angular-frontend, process-server, store-server, ontopic-server, ai-server).
+  # store-server-db uses the separate community postgres image below instead.
+  repository: metaphacts/ontopic
+  version: "6.0.0"
+
+  storage:
+    # Reuses the same convention as the top-level `storage.storageClass`: leave
+    # empty for the cluster default storage class, or set to "-" to omit
+    # storageClassName entirely (e.g. for the default class on some clusters).
+    storageClass: ""
+
+  angularFrontend:
+    # Full image override; defaults to "{repository}:studio-{version}" if empty.
+    image: ""
+    resources: {}
+    env:
+      urlPrefix: /ontopic
+      webApiUrl: /ontopic/api-ui/
+      isDemoVersion: false
+      hideProjects: false
+      isDesktopVersion: false
+      enableDataCollection: false
+      disableProjectCreation: true
+      disableProjectDeletion: false
+      disableOntologyEditing: true
+      disableDataSourceEditing: true
+    # Additional raw environment variables, e.g. [{name: ENDPOINT_ORIGIN, value: "https://example.com"}]
+    extraEnv: []
+
+  processServer:
+    # Full image override; defaults to "{repository}:process-server-{version}" if empty.
+    image: ""
+    resources: {}
+    env:
+      enablePrefixImport: false
+    extraEnv: []
+    # JDBC drivers needed to connect to relational sources (process-server does not
+    # ship any). Configure exactly one of the two options below:
+    jdbc:
+      # Preferred for production/air-gapped clusters: reference a PVC you populated
+      # once yourself (e.g. `kubectl cp` the jars in), mounted read-only at
+      # /app/jdbc. No runtime network dependency. Leave empty to use `urls` instead.
+      existingClaim: ""
+      # Convenience fallback for quick dev/eval use: downloaded by an initContainer
+      # (which reuses the metaphactory image, already cached on the node, since it
+      # already has curl installed) into an emptyDir on every pod start. Ignored if
+      # existingClaim is set. Add one entry per relational source you plan to map.
+      urls: []
+
+  storeServer:
+    # Full image override; defaults to "{repository}:store-server-{version}" if empty.
+    image: ""
+    resources: {}
+    # Name of an externally-created Secret (see README) with a `db-password` key,
+    # shared with storeServerDb below.
+    secretName: ontopic-store-secrets
+    persistence:
+      docsSize: 5Gi
+      reposSize: 5Gi
+    env:
+      enableSemanticSql: true
+      ontopicSampleDb: true
+      enableGitRepo: false
+      enableMaterialization: false
+      enableScopes: true
+      enableAuthentication: false
+    extraEnv: []
+
+  storeServerDb:
+    image: postgres
+    tag: "18.4"
+    resources: {}
+    persistence:
+      size: 10Gi
+    # Name of an externally-created Secret with a `db-password` key (same secret
+    # as storeServer.secretName by default - both just need that one key).
+    secretName: ontopic-store-secrets
+
+  ontopicServer:
+    # Full image override; defaults to "{repository}:ontopic-server-{version}" if empty.
+    image: ""
+    resources: {}
+    ports:
+      webApi: 8080
+      # Postgres wire protocol port. Cluster-internal only - unlike the docker-compose
+      # module (which binds this to 127.0.0.1 on the host for admin convenience),
+      # there is no reason to expose it outside the pod's ClusterIP Service at all.
+      postgresWire: 4300
+    env:
+      corsAllowedOrigins: ""
+      logLevel: INFO
+      enableMaterialization: false
+    extraEnv: []
+    persistence:
+      endpointSize: 5Gi
+      endpointSecuritySize: 1Gi
+      materializationDbSize: 5Gi
+      materializationConfigurationSize: 1Gi
+      materializationResultSize: 5Gi
+    # JDBC drivers for the relational sources being mapped. The H2 driver below is
+    # REQUIRED - ontopic-server uses H2 as its internal metadata store and will not
+    # start without it. Configure exactly one of the two options below:
+    jdbc:
+      # Preferred for production/air-gapped clusters: reference a PVC you populated
+      # once yourself, mounted read-only at /opt/ontopic-server/jdbc. Leave empty to
+      # use `urls` instead. Must still include the H2 driver.
+      existingClaim: ""
+      # Convenience fallback for quick dev/eval use: downloaded by an initContainer
+      # (reusing the metaphactory image) into an emptyDir on every pod start.
+      # Ignored if existingClaim is set. Append further entries (e.g. PostgreSQL,
+      # MSSQL, Oracle, Snowflake) for each relational source you plan to map.
+      urls:
+        - name: h2
+          url: https://repo1.maven.org/maven2/com/h2database/h2/2.3.232/h2-2.3.232.jar
+    # Name of an externally-created Secret (see README) with keys s3-access-key-id,
+    # s3-access-key-secret, azure-account-name, azure-account-key, azure-sas-token.
+    # Leave empty to run without blob-storage-backed materialization.
+    blobStorageSecretName: ""
+
+  aiServer:
+    # Full image override; defaults to "{repository}:ai-server-{version}" if empty.
+    image: ""
+    resources: {}
+    env:
+      llmMode: real
+      aiEngine: langchain
+      llmBaseUrl: ""
+      llmModels: ""
+    extraEnv: []
+    # Name of an externally-created Secret (see README) with keys openai-api-key,
+    # anthropic-api-key, llm-additional-headers. Leave empty to run without any LLM
+    # keys - ai-server still starts, but the AI assistant cannot answer.
+    secretName: ""

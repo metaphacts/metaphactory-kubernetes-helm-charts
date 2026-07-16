@@ -47,6 +47,10 @@ spec:
         - name: MP_APP_EIA_PHYSICAL_LAYER
           value: /bundled/apps/eia-physical-layer
         {{- end }}
+        {{- if .Values.ontopic.enabled }}
+        - name: MP_APP_ONTOPIC
+          value: /bundled/apps/ontopic
+        {{- end }}
         {{- if .Values.config.jmx_java_tool_options }}
         - name: JAVA_TOOL_OPTIONS
           value: {{ .Values.config.jmx_java_tool_options }}
@@ -155,6 +159,10 @@ spec:
             path: "config/assets.prop"
           - key: "aws-services.prop"
             path: "config/aws-services.prop"
+          {{- if .Values.ontopic.enabled }}
+          - key: "ontopic.prop"
+            path: "config/ontopic.prop"
+          {{- end }}
           {{- range $roleName, $roleContent := .Values.config.customRoles }}
           - key: "role-{{ $roleName }}.prop"
             path: "config/roles/role-{{ $roleName }}.prop"

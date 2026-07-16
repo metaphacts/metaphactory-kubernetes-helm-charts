@@ -1,0 +1,71 @@
+{{- if .Values.ontopic.enabled }}
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: ontopic-store-server-db
+  labels:
+    app: ontopic-store-server-db
+spec:
+  serviceName: ontopic-store-server-db
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ontopic-store-server-db
+  template:
+    metadata:
+      labels:
+        app: ontopic-store-server-db
+    spec:
+      containers:
+      - name: store-server-db
+        image: "{{ .Values.ontopic.storeServerDb.image }}:{{ .Values.ontopic.storeServerDb.tag }}"
+        env:
+        - name: POSTGRES_DB
+          value: internal
+        - name: POSTGRES_USER
+          value: postgres
+        - name: POSTGRES_PASSWORD_FILE
+          value: /run/secrets/app/db-password
+        {{- with .Values.ontopic.storeServerDb.resources }}
+        resources: {{- toYaml . | nindent 10 }}
+        {{- end }}
+        volumeMounts:
+        - name: db-secrets
+          mountPath: /run/secrets/app
+          readOnly: true
+        - name: ontopic-store-server-db-data
+          mountPath: /var/lib/postgresql
+        ports:
+        - containerPort: 5432
+          protocol: TCP
+        readinessProbe:
+          exec:
+            command: ["pg_isready", "-U", "postgres"]
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          failureThreshold: 10
+        livenessProbe:
+          exec:
+            command: ["pg_isready", "-U", "postgres"]
+          initialDelaySeconds: 30
+          periodSeconds: 30
+      volumes:
+      - name: db-secrets
+        secret:
+          secretName: {{ .Values.ontopic.storeServerDb.secretName }}
+  volumeClaimTemplates:
+  - metadata:
+      name: ontopic-store-server-db-data
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      {{- if .Values.ontopic.storage.storageClass }}
+      {{- if (eq "-" .Values.ontopic.storage.storageClass) }}
+      storageClassName: ""
+      {{- else }}
+      storageClassName: "{{ .Values.ontopic.storage.storageClass }}"
+      {{- end }}
+      {{- end }}
+      resources:
+        requests:
+          storage: {{ .Values.ontopic.storeServerDb.persistence.size }}
+{{- end }}

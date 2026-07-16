@@ -1,3 +1,4 @@
+apiVersion: v2
 name: metaphactory
 description: Helm Chart for metaphactory
-version: 1.11.0
+version: 1.12.0

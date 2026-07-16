@@ -1,0 +1,104 @@
+{{- if and .Values.ontopic.enabled .Values.ontopic.networkPolicy.enabled }}
+# Default-deny ingress per Ontopic pod, with an explicit allow-list matching the
+# actual inter-service dependency graph. This is the mechanism that actually
+# restricts which pods can reach Ontopic - namespaces alone provide no network
+# isolation, and ClusterIP Services are reachable from anywhere in the cluster
+# (even other namespaces) unless something like this blocks it.
+#
+# NOTE: NetworkPolicy is only enforced if your cluster's CNI plugin implements it
+# (Calico, Cilium, most managed-cloud CNIs do; plain Flannel does not - such
+# clusters accept these objects but never enforce them, with no error). See
+# README.md for details.
+#
+# No egress rules are defined here (egress stays allow-all) - this only restricts
+# inbound reachability to the Ontopic pods, per the current scope of this feature.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: ontopic-angular-frontend-policy
+spec:
+  podSelector:
+    matchLabels: {app: ontopic-angular-frontend}
+  policyTypes: [Ingress]
+  ingress:
+  - from:
+    - podSelector: {matchLabels: {app: {{ .Values.container.name }}}}
+    ports:
+    - {protocol: TCP, port: 4200}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: ontopic-process-server-policy
+spec:
+  podSelector:
+    matchLabels: {app: ontopic-process-server}
+  policyTypes: [Ingress]
+  ingress:
+  - from:
+    - podSelector: {matchLabels: {app: {{ .Values.container.name }}}}
+    - podSelector: {matchLabels: {app: ontopic-store-server}}
+    ports:
+    - {protocol: TCP, port: 8666}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: ontopic-store-server-policy
+spec:
+  podSelector:
+    matchLabels: {app: ontopic-store-server}
+  policyTypes: [Ingress]
+  ingress:
+  - from:
+    - podSelector: {matchLabels: {app: {{ .Values.container.name }}}}
+    - podSelector: {matchLabels: {app: ontopic-process-server}}
+    - podSelector: {matchLabels: {app: ontopic-ai-server}}
+    ports:
+    - {protocol: TCP, port: 3000}
+    - {protocol: TCP, port: 3001}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: ontopic-store-server-db-policy
+spec:
+  podSelector:
+    matchLabels: {app: ontopic-store-server-db}
+  policyTypes: [Ingress]
+  ingress:
+  - from:
+    - podSelector: {matchLabels: {app: ontopic-store-server}}
+    ports:
+    - {protocol: TCP, port: 5432}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: ontopic-server-policy
+spec:
+  podSelector:
+    matchLabels: {app: ontopic-server}
+  policyTypes: [Ingress]
+  ingress:
+  - from:
+    - podSelector: {matchLabels: {app: {{ .Values.container.name }}}}
+    - podSelector: {matchLabels: {app: ontopic-store-server}}
+    ports:
+    - {protocol: TCP, port: {{ .Values.ontopic.ontopicServer.ports.webApi }}}
+    - {protocol: TCP, port: {{ .Values.ontopic.ontopicServer.ports.postgresWire }}}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: ontopic-ai-server-policy
+spec:
+  podSelector:
+    matchLabels: {app: ontopic-ai-server}
+  policyTypes: [Ingress]
+  ingress:
+  - from:
+    - podSelector: {matchLabels: {app: {{ .Values.container.name }}}}
+    ports:
+    - {protocol: TCP, port: 8002}
+{{- end }}

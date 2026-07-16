@@ -1,0 +1,14 @@
+{{- if .Values.ontopic.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: ontopic-ai-server
+spec:
+  ports:
+  - name: http
+    port: 8002
+    targetPort: 8002
+  selector:
+    app: ontopic-ai-server
+  type: ClusterIP
+{{- end }}

@@ -1,0 +1,69 @@
+{{- if .Values.ontopic.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ontopic-angular-frontend
+  labels:
+    app: ontopic-angular-frontend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ontopic-angular-frontend
+  template:
+    metadata:
+      labels:
+        app: ontopic-angular-frontend
+    spec:
+      containers:
+      - name: angular-frontend
+        image: {{ .Values.ontopic.angularFrontend.image | default (printf "%s:studio-%s" .Values.ontopic.repository .Values.ontopic.version) }}
+        env:
+        - name: URL_PREFIX
+          value: {{ .Values.ontopic.angularFrontend.env.urlPrefix | quote }}
+        - name: WEB_API_URL
+          value: {{ .Values.ontopic.angularFrontend.env.webApiUrl | quote }}
+        - name: IS_DEMO_VERSION
+          value: {{ .Values.ontopic.angularFrontend.env.isDemoVersion | quote }}
+        - name: HIDE_PROJECTS
+          value: {{ .Values.ontopic.angularFrontend.env.hideProjects | quote }}
+        - name: IS_DESKTOP_VERSION
+          value: {{ .Values.ontopic.angularFrontend.env.isDesktopVersion | quote }}
+        - name: ENABLE_DATA_COLLECTION
+          value: {{ .Values.ontopic.angularFrontend.env.enableDataCollection | quote }}
+        - name: DISABLE_PROJECT_CREATION
+          value: {{ .Values.ontopic.angularFrontend.env.disableProjectCreation | quote }}
+        - name: DISABLE_PROJECT_DELETION
+          value: {{ .Values.ontopic.angularFrontend.env.disableProjectDeletion | quote }}
+        - name: DISABLE_ONTOLOGY_EDITING
+          value: {{ .Values.ontopic.angularFrontend.env.disableOntologyEditing | quote }}
+        - name: DISABLE_DATA_SOURCE_EDITING
+          value: {{ .Values.ontopic.angularFrontend.env.disableDataSourceEditing | quote }}
+        - name: ONTOPIC_SERVER_DISABLE_TLS
+          value: "false"
+        {{- range .Values.ontopic.angularFrontend.extraEnv }}
+        - name: {{ .name }}
+          value: {{ .value | quote }}
+        {{- end }}
+        {{- with .Values.ontopic.angularFrontend.resources }}
+        resources: {{- toYaml . | nindent 10 }}
+        {{- end }}
+        ports:
+        - containerPort: 4200
+          protocol: TCP
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 4200
+          initialDelaySeconds: 5
+          periodSeconds: 10
+          failureThreshold: 10
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 4200
+          initialDelaySeconds: 30
+          periodSeconds: 30
+      imagePullSecrets:
+      - name: {{ .Values.container.imagePullSecretName }}
+{{- end }}

@@ -1,0 +1,17 @@
+{{- if .Values.ontopic.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: ontopic-server
+spec:
+  ports:
+  - name: web-api
+    port: {{ .Values.ontopic.ontopicServer.ports.webApi }}
+    targetPort: {{ .Values.ontopic.ontopicServer.ports.webApi }}
+  - name: postgres-wire
+    port: {{ .Values.ontopic.ontopicServer.ports.postgresWire }}
+    targetPort: {{ .Values.ontopic.ontopicServer.ports.postgresWire }}
+  selector:
+    app: ontopic-server
+  type: ClusterIP
+{{- end }}

@@ -1,0 +1,86 @@
+{{- if .Values.ontopic.enabled }}
+{{- $secretName := .Values.ontopic.aiServer.secretName }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ontopic-ai-server
+  labels:
+    app: ontopic-ai-server
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ontopic-ai-server
+  template:
+    metadata:
+      labels:
+        app: ontopic-ai-server
+    spec:
+      containers:
+      - name: ai-server
+        image: {{ .Values.ontopic.aiServer.image | default (printf "%s:ai-server-%s" .Values.ontopic.repository .Values.ontopic.version) }}
+        env:
+        - name: APP_HOST
+          value: "0.0.0.0"
+        - name: APP_PORT
+          value: "8002"
+        - name: SERVICE_MODE
+          value: real
+        - name: LLM_MODE
+          value: {{ .Values.ontopic.aiServer.env.llmMode | quote }}
+        - name: AI_ENGINE
+          value: {{ .Values.ontopic.aiServer.env.aiEngine | quote }}
+        - name: LLM_BASE_URL
+          value: {{ .Values.ontopic.aiServer.env.llmBaseUrl | quote }}
+        - name: LLM_MODELS
+          value: {{ .Values.ontopic.aiServer.env.llmModels | quote }}
+        - name: STORE_SERVICE_HOST
+          value: ontopic-store-server
+        - name: STORE_SERVICE_PORT
+          value: "3000"
+        {{- if $secretName }}
+        - name: OPENAI_API_KEY_FILE
+          value: /run/secrets/openai-api-key
+        - name: ANTHROPIC_API_KEY_FILE
+          value: /run/secrets/anthropic-api-key
+        - name: LLM_ADDITIONAL_HEADERS_FILE
+          value: /run/secrets/llm-additional-headers
+        {{- end }}
+        {{- range .Values.ontopic.aiServer.extraEnv }}
+        - name: {{ .name }}
+          value: {{ .value | quote }}
+        {{- end }}
+        {{- with .Values.ontopic.aiServer.resources }}
+        resources: {{- toYaml . | nindent 10 }}
+        {{- end }}
+        {{- if $secretName }}
+        volumeMounts:
+        - name: ai-secrets
+          mountPath: /run/secrets
+          readOnly: true
+        {{- end }}
+        ports:
+        - containerPort: 8002
+          protocol: TCP
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8002
+          initialDelaySeconds: 5
+          periodSeconds: 15
+          failureThreshold: 3
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8002
+          initialDelaySeconds: 30
+          periodSeconds: 30
+      {{- if $secretName }}
+      volumes:
+      - name: ai-secrets
+        secret:
+          secretName: {{ $secretName }}
+      {{- end }}
+      imagePullSecrets:
+      - name: {{ .Values.container.imagePullSecretName }}
+{{- end }}

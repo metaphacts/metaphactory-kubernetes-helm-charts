@@ -96,6 +96,80 @@ Please note, that Helm will create the deployment within the default namespace. 
 
 
 
+### Optional Setup: Activate the Ontopic Module for the Semantic Layer
+
+The mapping and virtualization capabilities of the Semantic Layer are powered by [Ontopic](https://metaphacts.com), deployed alongside metaphactory. Ontopic provides the environment for AI-assisted creation, curation and review of the executable (R2RML) mappings, and serves these mappings as SPARQL endpoints over your relational databases - making the data queryable as a knowledge graph without physically moving it.
+
+This is an optional module: disabled by default, enabled by setting `ontopic.enabled: true` in `values.yaml`. It deploys 6 additional Pods:
+
+| Service | Purpose |
+|---|---|
+| `ontopic-angular-frontend` | Ontopic Studio web UI |
+| `ontopic-process-server` | Query processing backend |
+| `ontopic-store-server` | Project/policy store backend |
+| `ontopic-store-server-db` | PostgreSQL for `ontopic-store-server` (community image) |
+| `ontopic-server` | Semantic SQL / SPARQL endpoint server |
+| `ontopic-ai-server` | LLM-backed AI assistant for Ontopic Studio (requires an OpenAI/Anthropic key) |
+
+#### Network isolation
+
+Ontopic is reached exclusively through metaphactory's reverse proxy - none of the 6 Pods above have an Ingress of their own, and their Services are `ClusterIP`-only.
+
+**This alone does not fully isolate them.** Kubernetes namespaces are not a network boundary: any Pod anywhere in the cluster (even in a different namespace) can resolve and connect to a `ClusterIP` Service unless something actively blocks it. To actually restrict which Pods may reach Ontopic, this chart also renders `NetworkPolicy` resources (`ontopic.networkPolicy.enabled`, `true` by default) that default-deny ingress to each Ontopic Pod except from metaphactory and the specific other Ontopic Pods that legitimately talk to it.
+
+**Important caveat:** `NetworkPolicy` is only enforced if your cluster's CNI plugin implements it. Calico, Cilium, and most managed-cloud CNIs (EKS, GKE, AKS) do. Plain Flannel does **not** - it silently accepts `NetworkPolicy` objects without ever enforcing them, with no error or warning. Verify your cluster's CNI supports `NetworkPolicy` before relying on this as your only isolation mechanism.
+
+#### Enabling Ontopic
+
+1. Create the required secret (`ontopic-store-secrets` by default, referenced by `ontopic.storeServer.secretName` / `ontopic.storeServerDb.secretName`) with a `db-password` key shared by `ontopic-store-server` and `ontopic-store-server-db`:
+   ```sh
+   kubectl create secret generic ontopic-store-secrets \
+     --from-literal=db-password='<strong-password>' --namespace metaphactory-dev
+   ```
+2. Optionally, create secrets for blob-storage-backed materialization and for the AI assistant, and reference their names via `ontopic.ontopicServer.blobStorageSecretName` / `ontopic.aiServer.secretName` (left empty by default - Ontopic runs fine without them, just without those features):
+   ```sh
+   kubectl create secret generic ontopic-blob-secrets \
+     --from-literal=s3-access-key-id='...' --from-literal=s3-access-key-secret='...' \
+     --from-literal=azure-account-name='...' --from-literal=azure-account-key='...' \
+     --from-literal=azure-sas-token='...' --namespace metaphactory-dev
+
+   kubectl create secret generic ontopic-ai-secrets \
+     --from-literal=openai-api-key='...' --from-literal=anthropic-api-key='...' \
+     --from-literal=llm-additional-headers='...' --namespace metaphactory-dev
+   ```
+3. Configure JDBC drivers for `ontopic.processServer.jdbc` and `ontopic.ontopicServer.jdbc` (the **H2 driver is mandatory** for `ontopic-server` - it uses H2 as its internal metadata store and will not start without it; it's pre-configured as a default). Two options, configured per-service:
+   - **`existingClaim`** (recommended for production/air-gapped clusters): reference a `PersistentVolumeClaim` you populate once yourself, e.g. via `kubectl cp` against a throwaway Pod mounting the same claim. No runtime network dependency.
+   - **`urls`** (convenience default for quick evaluation): a list of `{name, url}` entries downloaded by an initContainer (reusing the metaphactory image, which already has `curl`) into an ephemeral volume on every Pod start. Append an entry per relational database you plan to map, e.g.:
+     ```yaml
+     ontopic:
+       ontopicServer:
+         jdbc:
+           urls:
+             - name: h2
+               url: https://repo1.maven.org/maven2/com/h2database/h2/2.3.232/h2-2.3.232.jar
+             - name: postgresql
+               url: https://repo1.maven.org/maven2/org/postgresql/postgresql/42.7.4/postgresql-42.7.4.jar
+     ```
+4. Set `ontopic.enabled: true` in your values file and run `helm upgrade`/`helm install` as usual.
+5. Verify: `kubectl get pods --namespace metaphactory-dev` until all `ontopic-*` Pods and `metaphactory` reach `Running`/`Ready`, then browse to `https://<your-metaphactory-host>/`, open the 'Apps' menu and select 'Ontopic'  and confirm the Ontopic UI loads.
+
+#### Redeploying Ontopic from scratch
+
+To wipe Ontopic's persistent state and start over (this destroys all Ontopic projects, mappings, and materialized data):
+```sh
+kubectl delete pvc --namespace metaphactory-dev \
+  ontopic-store-server-docs-ontopic-store-server-0 \
+  ontopic-store-server-repos-ontopic-store-server-0 \
+  ontopic-store-server-db-data-ontopic-store-server-db-0 \
+  ontopic-server-endpoint-ontopic-server-0 \
+  ontopic-server-endpoint-security-ontopic-server-0 \
+  ontopic-server-materialization-db-ontopic-server-0 \
+  ontopic-server-materialization-configuration-ontopic-server-0 \
+  ontopic-server-materialization-result-ontopic-server-0
+```
+
+
+
 ### Deleting the Deployment
 
 To remove the complete setup run following commands (**Note: This will remove all persistent volumes and data as well!**)

@@ -1,0 +1,201 @@
+{{- if .Values.ontopic.enabled }}
+{{- $jdbc := .Values.ontopic.ontopicServer.jdbc }}
+{{- $blobSecret := .Values.ontopic.ontopicServer.blobStorageSecretName }}
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: ontopic-server
+  labels:
+    app: ontopic-server
+spec:
+  serviceName: ontopic-server
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ontopic-server
+  template:
+    metadata:
+      labels:
+        app: ontopic-server
+    spec:
+      containers:
+      - name: ontopic-server
+        image: {{ .Values.ontopic.ontopicServer.image | default (printf "%s:ontopic-server-%s" .Values.ontopic.repository .Values.ontopic.version) }}
+        env:
+        - name: ONTOPIC_SERVER_CORS_ALLOWED_ORIGINS
+          value: {{ .Values.ontopic.ontopicServer.env.corsAllowedOrigins | quote }}
+        - name: ONTOPIC_SERVER_LOG_LEVEL
+          value: {{ .Values.ontopic.ontopicServer.env.logLevel | quote }}
+        - name: ONTOPIC_SERVER_ENABLE_MATERIALIZATION
+          value: {{ .Values.ontopic.ontopicServer.env.enableMaterialization | quote }}
+        - name: ONTOPIC_SERVER_ENABLE_POSTGRES_WIRE_PROTOCOL
+          value: "true"
+        - name: ONTOPIC_SERVER_JDBC_ROOT_DIR
+          value: /opt/ontopic-server/jdbc
+        - name: ONTOPIC_SERVER_WEB_API_PORT
+          value: {{ .Values.ontopic.ontopicServer.ports.webApi | quote }}
+        - name: ONTOPIC_SERVER_POSTGRES_PORT
+          value: {{ .Values.ontopic.ontopicServer.ports.postgresWire | quote }}
+        - name: ONTOPIC_SERVER_DISABLE_TLS
+          value: "false"
+        {{- if $blobSecret }}
+        - name: ONTOPIC_SERVER_S3_ACCESS_KEY_ID_FILE
+          value: /run/secrets/s3-access-key-id
+        - name: ONTOPIC_SERVER_S3_ACCESS_KEY_SECRET_FILE
+          value: /run/secrets/s3-access-key-secret
+        - name: ONTOPIC_SERVER_AZURE_ACCOUNT_NAME
+          value: /run/secrets/azure-account-name
+        - name: ONTOPIC_SERVER_AZURE_ACCOUNT_KEY
+          value: /run/secrets/azure-account-key
+        - name: ONTOPIC_SERVER_AZURE_SAS_TOKEN
+          value: /run/secrets/azure-sas-token
+        {{- end }}
+        {{- range .Values.ontopic.ontopicServer.extraEnv }}
+        - name: {{ .name }}
+          value: {{ .value | quote }}
+        {{- end }}
+        {{- with .Values.ontopic.ontopicServer.resources }}
+        resources: {{- toYaml . | nindent 10 }}
+        {{- end }}
+        volumeMounts:
+        {{- if or $jdbc.existingClaim $jdbc.urls }}
+        - name: jdbc
+          mountPath: /opt/ontopic-server/jdbc
+          readOnly: true
+        {{- end }}
+        {{- if $blobSecret }}
+        - name: blob-storage-secrets
+          mountPath: /run/secrets
+          readOnly: true
+        {{- end }}
+        - name: ontopic-server-endpoint
+          mountPath: /opt/ontopic-server/endpoint
+        - name: ontopic-server-endpoint-security
+          mountPath: /opt/ontopic-server/endpoint-security
+        - name: ontopic-server-materialization-db
+          mountPath: /opt/ontopic-server/db
+        - name: ontopic-server-materialization-configuration
+          mountPath: /opt/ontopic-server/materialization-configuration
+        - name: ontopic-server-materialization-result
+          mountPath: /opt/ontopic-server/materialization-result
+        ports:
+        - containerPort: {{ .Values.ontopic.ontopicServer.ports.webApi }}
+          protocol: TCP
+        - containerPort: {{ .Values.ontopic.ontopicServer.ports.postgresWire }}
+          protocol: TCP
+        readinessProbe:
+          httpGet:
+            path: /healthcheck
+            port: {{ .Values.ontopic.ontopicServer.ports.webApi }}
+          initialDelaySeconds: 15
+          periodSeconds: 15
+          failureThreshold: 10
+        livenessProbe:
+          httpGet:
+            path: /healthcheck
+            port: {{ .Values.ontopic.ontopicServer.ports.webApi }}
+          initialDelaySeconds: 60
+          periodSeconds: 60
+      {{- if and $jdbc.urls (not $jdbc.existingClaim) }}
+      initContainers:
+      - name: jdbc-init
+        image: {{ .Values.container.image }}:{{ .Values.container.tag }}
+        command: ["sh", "-c"]
+        args:
+        - |
+          {{- range $jdbc.urls }}
+          curl -fL -o /jdbc/{{ .name }}.jar {{ .url }}
+          {{- end }}
+        volumeMounts:
+        - name: jdbc
+          mountPath: /jdbc
+      {{- end }}
+      volumes:
+      {{- if or $jdbc.existingClaim $jdbc.urls }}
+      - name: jdbc
+        {{- if $jdbc.existingClaim }}
+        persistentVolumeClaim:
+          claimName: {{ $jdbc.existingClaim }}
+        {{- else }}
+        emptyDir: {}
+        {{- end }}
+      {{- end }}
+      {{- if $blobSecret }}
+      - name: blob-storage-secrets
+        secret:
+          secretName: {{ $blobSecret }}
+      {{- end }}
+      imagePullSecrets:
+      - name: {{ .Values.container.imagePullSecretName }}
+  volumeClaimTemplates:
+  - metadata:
+      name: ontopic-server-endpoint
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      {{- if .Values.ontopic.storage.storageClass }}
+      {{- if (eq "-" .Values.ontopic.storage.storageClass) }}
+      storageClassName: ""
+      {{- else }}
+      storageClassName: "{{ .Values.ontopic.storage.storageClass }}"
+      {{- end }}
+      {{- end }}
+      resources:
+        requests:
+          storage: {{ .Values.ontopic.ontopicServer.persistence.endpointSize }}
+  - metadata:
+      name: ontopic-server-endpoint-security
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      {{- if .Values.ontopic.storage.storageClass }}
+      {{- if (eq "-" .Values.ontopic.storage.storageClass) }}
+      storageClassName: ""
+      {{- else }}
+      storageClassName: "{{ .Values.ontopic.storage.storageClass }}"
+      {{- end }}
+      {{- end }}
+      resources:
+        requests:
+          storage: {{ .Values.ontopic.ontopicServer.persistence.endpointSecuritySize }}
+  - metadata:
+      name: ontopic-server-materialization-db
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      {{- if .Values.ontopic.storage.storageClass }}
+      {{- if (eq "-" .Values.ontopic.storage.storageClass) }}
+      storageClassName: ""
+      {{- else }}
+      storageClassName: "{{ .Values.ontopic.storage.storageClass }}"
+      {{- end }}
+      {{- end }}
+      resources:
+        requests:
+          storage: {{ .Values.ontopic.ontopicServer.persistence.materializationDbSize }}
+  - metadata:
+      name: ontopic-server-materialization-configuration
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      {{- if .Values.ontopic.storage.storageClass }}
+      {{- if (eq "-" .Values.ontopic.storage.storageClass) }}
+      storageClassName: ""
+      {{- else }}
+      storageClassName: "{{ .Values.ontopic.storage.storageClass }}"
+      {{- end }}
+      {{- end }}
+      resources:
+        requests:
+          storage: {{ .Values.ontopic.ontopicServer.persistence.materializationConfigurationSize }}
+  - metadata:
+      name: ontopic-server-materialization-result
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      {{- if .Values.ontopic.storage.storageClass }}
+      {{- if (eq "-" .Values.ontopic.storage.storageClass) }}
+      storageClassName: ""
+      {{- else }}
+      storageClassName: "{{ .Values.ontopic.storage.storageClass }}"
+      {{- end }}
+      {{- end }}
+      resources:
+        requests:
+          storage: {{ .Values.ontopic.ontopicServer.persistence.materializationResultSize }}
+{{- end }}

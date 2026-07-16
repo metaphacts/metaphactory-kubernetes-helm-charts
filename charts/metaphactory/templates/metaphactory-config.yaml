@@ -12,6 +12,19 @@ data:
   namespaces.prop: {{- .Values.config.namespaces_prop | toYaml | indent 2 }}
   assets.prop: {{- .Values.config.assets_prop | toYaml | indent 2 }}
   aws-services.prop: {{- .Values.config.aws_services_prop | toYaml | indent 2 }}
+  {{- if .Values.ontopic.enabled }}
+  ontopic.prop: |
+    angular-frontend=http://ontopic-angular-frontend:4200/
+    url-prefix={{ .Values.ontopic.angularFrontend.env.urlPrefix }}
+    process-server=http://ontopic-process-server:8666/
+    store-server=http://ontopic-store-server:3000/
+    store-server-websocket=http://ontopic-store-server:3001/
+    ontopic-server=http://ontopic-server:{{ .Values.ontopic.ontopicServer.ports.webApi }}/
+    ai-server=http://ontopic-ai-server:8002/
+    web-api-url={{ .Values.ontopic.angularFrontend.env.webApiUrl }}
+    web-api-endpoint=http://ontopic-store-server:3000/api-ui/
+    api-docs-endpoint=http://ontopic-store-server:3000/api-docs.json
+  {{- end }}
   {{- if .Values.config.jettyCustomIni }}
   custom.ini: |
     {{- .Values.config.jettyCustomIni | nindent 4 }}

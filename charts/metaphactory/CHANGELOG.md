@@ -6,6 +6,13 @@ Note: when updating to a newer release of metaphactory, also regard the informat
 
 If not mentioned otherwise, the Helm chart definitions are backwards compatible to the previous released version.
 
+## 2026-07-13 (Release 6.0.0)
+
+The docker tags have been updated to the 6.0.0 release of metaphactory.
+
+Add optional deployment of the Semantic Layer, powered by Ontopic
+
+
 ## 2026-03-27 (Release 5.11.0)
 
 The docker tags have been updated to the 5.11.0 release of metaphactory.
