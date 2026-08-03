@@ -2,11 +2,18 @@ apiVersion: v1
 kind: Service
 metadata:
   name: {{ .Values.container.name }}
+  labels:
+    app: {{ .Values.container.name }}
 spec:
   ports:
   - name: {{ .Values.service.portName }}
     port: {{ .Values.service.port }}
     targetPort: {{ .Values.service.targetPort }}
+  {{- if .Values.config.jmxExporter.enabled }}
+  - name: {{ .Values.service.metricsPortName }}
+    port: {{ .Values.service.metricsPort }}
+    targetPort: {{ required "config.jmxExporter.port is required when config.jmxExporter.enabled is true" .Values.config.jmxExporter.port }}
+  {{- end }}
   selector:
     app: {{ .Values.container.name }}
   type: {{ .Values.service.type }}

@@ -55,6 +55,12 @@ spec:
         - name: JAVA_TOOL_OPTIONS
           value: {{ .Values.config.jmx_java_tool_options }}
         {{- end }}
+        {{- if .Values.config.jmxExporter.enabled }}
+        - name: JMX_EXPORTER_PORT
+          value: {{ required "config.jmxExporter.port is required when config.jmxExporter.enabled is true" .Values.config.jmxExporter.port | quote }}
+        - name: JMX_EXPORTER_CONFIG
+          value: {{ required "config.jmxExporter.configPath is required when config.jmxExporter.enabled is true" .Values.config.jmxExporter.configPath | quote }}
+        {{- end }}
         {{- with .Values.container.envFrom }}
         envFrom: {{- toYaml . | nindent 10 }}
         {{- end }}
@@ -102,6 +108,12 @@ spec:
         - name: jetty-jmx-config
           mountPath: /var/lib/jetty/start.d/jmx.ini
           subPath: jmx.ini
+        {{- end }}
+        {{- if .Values.config.jmxExporter.enabled }}
+        - name: jmx-exporter-config
+          mountPath: {{ required "config.jmxExporter.configPath is required when config.jmxExporter.enabled is true" .Values.config.jmxExporter.configPath | quote }}
+          subPath: config.yaml
+          readOnly: true
         {{- end }}
         {{- with .Values.appsFromVolumes }}
         {{- range $app := . }}
@@ -184,6 +196,14 @@ spec:
           items:
           - key: "jmx.ini"
             path: "jmx.ini"
+      {{- end }}
+      {{- if .Values.config.jmxExporter.enabled }}
+      - name: jmx-exporter-config
+        configMap:
+          name: metaphactory-config
+          items:
+            - key: "jmx-exporter-config.yaml"
+              path: "config.yaml"
       {{- end }}
       {{- if .Values.config.jettyRequestLogIni }}
       - name: jetty-requestlog-config

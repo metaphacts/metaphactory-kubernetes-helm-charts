@@ -9,11 +9,13 @@ container:
   persistentVolumeSize: 1Gi
   # Size for the dedicated log volume (Only created if jettyRequestLogIni is set)
   logsVolumeSize: 1Gi
-  # JMX Metrics Configuration
-  # To enable JMX/Prometheus metrics, BOTH jmx_image (here) and
-  # jmx_java_tool_options (under config:) must be set together.
+  # JMX Agent Image (legacy path)
+  # Used with config.jmx_java_tool_options to inject the javaagent via
+  # JAVA_TOOL_OPTIONS.
+  # DEPRECATED: Prefer config.jmxExporter.enabled with config.jmxExporter.port
+  # and config.jmxExporter.configPath instead.
   # The init container copies the JMX agent jar from this image into /apps/jmx/
-  # before Metaphactory starts.
+  # before Metaphactory starts when legacy mode is used.
   # Optionally set config.jmxIni to also enable Jetty-specific MBeans.
   # Example Configuration:
   # jmx_image: "your-registry/jmx-agent:1.5.0"
@@ -123,32 +125,47 @@ config:
   # Leave as empty string "" to DISABLE jetty logs and prevent volume creation.
   jettyRequestLogIni: ""
 
-  # Jetty Statistics Configuration
-  # To enable statistics (e.g. for JMX/metrics), uncomment the block below and remove the empty string definition.
-  #
-  # Example Configuration:
-  # jettyStatisticsIni: |
-  #   --module=statistics
-  #
   # Leave as empty string "" to DISABLE jetty statistics.
   jettyStatisticsIni: ""
   # Jetty JMX Module - enables Jetty internals as JMX MBeans (thread pools, connectors, request stats).
-  # When combined with jmx_java_tool_options, these MBeans are also exposed as Prometheus metrics.
+  # When combined with jmx_java_tool_options (legacy) or config.jmxExporter (preferred),
+  # these MBeans are also exposed as Prometheus metrics.
   # Example Configuration:
   # jmxIni: |
   #   --module=jmx
   # Leave as empty string "" to DISABLE Jetty JMX module.
   jmxIni: ""
-  # JMX Java Tool Options
-  # Part 2 of JMX setup - see also container.jmx_image above.
+  # JMX Java Tool Options (legacy path)
+  # Part 2 of the legacy JMX setup - see also container.jmx_image above.
+  # DEPRECATED: Prefer config.jmxExporter.* below instead. Only needed together
+  # with container.jmx_image; attaches the copied agent jar via JAVA_TOOL_OPTIONS.
+  # Example Configuration:
+  # jmx_java_tool_options: "-javaagent:/apps/jmx/jmx_prometheus_javaagent-1.5.0.jar=9404:/apps/jmx/config.yaml"
+  jmx_java_tool_options: ""
+
+  # JMX Metrics Configuration
+  # To enable JMX/Prometheus metrics, set jmxExporter.enabled to true and
+  # uncomment the port and configPath settings below.
   # Activates the JMX Prometheus agent on the Metaphactory JVM.
-  # Metrics will be exposed at :9404/metrics once both settings are configured.
-  jmx_java_tool_options: "" #-javaagent:/apps/jmx/jmx_prometheus_javaagent-1.5.0.jar=9404:/apps/jmx/config.yaml
+  # Metrics will be exposed at the set port e.g. :9404/metrics once both settings are configured.
+  # If config is left empty, the chart renders a curated default allowlist from
+  # templates/_jmx-exporter-config.tpl.
+  # Set config to your own YAML block to override that default rule set.
+  jmxExporter:
+    enabled: false
+    # port: 9404
+    # configPath: /jmx-exporter/config.yaml
+    # config: |
+    #   # Optional override for the default allowlist from
+    #   # templates/_jmx-exporter-config.tpl.
+    #   lowercaseOutputName: true
 service:
   portName: http
   port: 80
   targetPort: 8080
   type: LoadBalancer # or ClusterIP or NodePort
+  metricsPortName: metrics
+  metricsPort: 9404
 replicas: 1
 database:
   defaultDatabaseName: metaphactory
@@ -181,6 +198,16 @@ ingress:
   ingressClass: alb
   host: test.example.com
   enableSSLRedirect: true
+
+monitoring:
+  serviceMonitor:
+    enabled: false
+    # interval: 30s
+    # scrapeTimeout: 10s
+    # path: /metrics
+    # labels: {
+    #   release: kube-prometheus-stack
+    # }
 
 # Ontopic suite (optional). Powers the mapping/virtualization capabilities of the
 # Semantic Layer: AI-assisted R2RML mapping authoring and SPARQL-over-SQL endpoints.

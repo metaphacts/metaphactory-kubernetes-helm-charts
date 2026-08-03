@@ -1,0 +1,20 @@
+{{- if and .Values.monitoring.serviceMonitor.enabled .Values.config.jmxExporter.enabled (.Capabilities.APIVersions.Has "monitoring.coreos.com/v1") }}
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ .Values.container.name }}
+  labels:
+    app: {{ .Values.container.name }}
+    {{- with .Values.monitoring.serviceMonitor.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  selector:
+    matchLabels:
+      app: {{ .Values.container.name }}
+  endpoints:
+  - port: {{ .Values.service.metricsPortName }}
+    path: {{ default "/metrics" .Values.monitoring.serviceMonitor.path | quote }}
+    interval: {{ default "30s" .Values.monitoring.serviceMonitor.interval | quote }}
+    scrapeTimeout: {{ default "10s" .Values.monitoring.serviceMonitor.scrapeTimeout | quote }}
+{{- end }}

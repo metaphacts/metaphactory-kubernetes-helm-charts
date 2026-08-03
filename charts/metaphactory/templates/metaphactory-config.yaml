@@ -42,6 +42,14 @@ data:
   jmx.ini: |
     {{- .Values.config.jmxIni | nindent 4 }}
   {{- end }}
+  {{- if .Values.config.jmxExporter.enabled }}
+  jmx-exporter-config.yaml: |
+    {{- if .Values.config.jmxExporter.config }}
+    {{- .Values.config.jmxExporter.config | nindent 4 }}
+    {{- else }}
+    {{- include "metaphactory.jmxExporterConfig" . | nindent 4 }}
+    {{- end }}
+  {{- end }}
   {{- range $roleName, $roleContent := .Values.config.customRoles }}
   role-{{ $roleName }}.prop: {{- $roleContent | toYaml | indent 4 }}
   {{- end }}
