@@ -10,6 +10,8 @@ If not mentioned otherwise, the Helm chart definitions are backwards compatible 
 
 The docker tags have been updated to the 6.0.1 release of metaphactory.
 
+The docker tags have been updated to the 6.0.1 release of Ontopic.
+
 Additional changes
 
 - Add a predefined jmxExporter and configuration which can be enabled via values.yml. The JMX Exporter agent is shipped as part of metaphactory and only needs to be referenced as shown in the commented example.
