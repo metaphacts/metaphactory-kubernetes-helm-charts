@@ -52,6 +52,23 @@ container:
     urls: []
     # - name: databricks
     #   url: https://repo1.maven.org/maven2/com/databricks/databricks-jdbc/3.4.2/databricks-jdbc-3.4.2.jar
+
+# Configurations for the ServiceAccount for metaphactory.
+# The service account tokens can be used as OIDC federated web identity tokens
+# for authentication in cloud APIs (e.g. AWS S3 via EKS Pod Identity).
+# Ref: https://kubernetes.io/docs/concepts/security/service-accounts/
+serviceAccount:
+  # Specifies whether a ServiceAccount should be created for metaphactory.
+  create: false
+  # - If not set and create is true, a name is generated using the release name
+  # - If set and create is true, it will use the provided name
+  # - If set but create is false, it will use the provided, externally managed ServiceAccount
+  # - If not set and create is false, serviceAccountName is not rendered at all
+  #   (the pod implicitly uses the namespace default service account)
+  name: ""
+  # Additional annotations for the created ServiceAccount (e.g. for Pod Identity)
+  annotations: {}
+
 #appsFromVolumes:
 #  - name: skinapp
 #    configMap:

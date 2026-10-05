@@ -28,6 +28,10 @@ spec:
       {{- end }}
       securityContext:
         fsGroup: 101
+      {{- $sa := .Values.serviceAccount | default dict }}
+      {{- if or $sa.create $sa.name }}
+      serviceAccountName: {{ $sa.name | default .Release.Name | quote }}
+      {{- end }}
       terminationGracePeriodSeconds: 10
       containers:
       - env:
