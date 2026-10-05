@@ -168,6 +168,7 @@ service:
   metricsPort: 9404
 replicas: 1
 database:
+  enabled: true # this enables creation of the database connection ttl files; can be disabled for scenarios where a metaphactory is needed without a database and can be configured later
   defaultDatabaseName: metaphactory
   assetsDatabaseName: assets
   assetsSecurityStrategy: assets

@@ -153,12 +153,14 @@ spec:
             path: "config/shiro-sso-oidc-params.ini"
           - key: "shiro-sso-users.ini"
             path: "config/shiro-sso-users.ini"
+          {{- if .Values.database.enabled }}
           - key: "repository-config"
             path: "config/repositories/default.ttl"
           - key: "repository-assets-config"
             path: "config/repositories/assets.ttl"
           - key: "repository-tests-config"
             path: "config/repositories/tests.ttl"
+          {{- end }}
           - key: "shiro.ini"
             path: "config/shiro.ini"
           - key: "storage.prop"
