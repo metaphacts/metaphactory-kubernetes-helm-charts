@@ -1,0 +1,28 @@
+{{- if and .Values.knowledgeExtractor.enabled .Values.knowledgeExtractor.networkPolicy.enabled }}
+# Default-deny ingress for the Knowledge Extractor pod, with an explicit
+# allow-list matching the actual dependency graph: only metaphactory talks to
+# Knowledge Extractor, on the ocpProcApi/ocpMgmtApi ports. The health port
+# (9180, liveness-probe only) is deliberately NOT allow-listed here -
+# kubelet-originated probe traffic doesn't come from a pod matching the
+# selector below, and probe traffic is not blocked by NetworkPolicy on most
+# CNIs, so widening the policy for it is unnecessary. See README.
+#
+# NOTE: NetworkPolicy is only enforced if your cluster's CNI plugin implements
+# it (Calico, Cilium, most managed-cloud CNIs do; plain Flannel does not -
+# unsupported NetworkPolicy objects are silently never enforced, with no
+# error). See README.md for details.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: knowledge-extractor-policy
+spec:
+  podSelector:
+    matchLabels: {app: knowledge-extractor}
+  policyTypes: [Ingress]
+  ingress:
+  - from:
+    - podSelector: {matchLabels: {app: {{ .Values.container.name }}}}
+    ports:
+    - {protocol: TCP, port: {{ .Values.knowledgeExtractor.ports.ocpProcApi }}}
+    - {protocol: TCP, port: {{ .Values.knowledgeExtractor.ports.ocpMgmtApi }}}
+{{- end }}

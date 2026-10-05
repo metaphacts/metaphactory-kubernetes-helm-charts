@@ -390,3 +390,58 @@ ontopic:
     # anthropic-api-key, llm-additional-headers. Leave empty to run without any LLM
     # keys - ai-server still starts, but the AI assistant cannot answer.
     secretName: ""
+
+# Knowledge Extractor (optional). Document-annotation service that powers the
+# bundled Knowledge Extractor app: documents uploaded through metaphactory are
+# annotated, and SKOS vocabularies metaphactory hands off are converted into
+# cartridges. Disabled by default - set `enabled: true` to deploy it alongside
+# metaphactory. Knowledge Extractor is reached only via its internal ClusterIP
+# Service - it is never exposed via its own Ingress. See README.
+knowledgeExtractor:
+  enabled: false
+
+  image: metaphacts/knowledge-extractor
+  tag: "6.1.0-2026-09-28"
+
+  resources: {}
+
+  networkPolicy:
+    # Restricts inbound traffic on the Knowledge Extractor pod to only the
+    # metaphactory pod, on the ocpProcApi/ocpMgmtApi ports (see README).
+    # NOTE: NetworkPolicy is only enforced if your cluster's CNI implements it
+    # (Calico, Cilium, most managed-cloud CNIs do; plain Flannel does not).
+    enabled: true
+
+  ports:
+    ocpProcApi: 9081
+    ocpMgmtApi: 9083
+    # Internal health endpoint (GET /ocmsvc/health/status/code), used only
+    # for the container's livenessProbe. Deliberately not exposed via the
+    # Service or the NetworkPolicy allow-list above - the kubelet probes the
+    # Pod directly, so neither is required for the probe to work.
+    health: 9180
+
+  # Name of an externally-created Secret holding the Knowledge Extractor
+  # license file under key `ocm.lic`. See README for the kubectl command.
+  licenseSecretName: knowledge-extractor-license
+
+  # document-storage and vocabulary-storage are shared with metaphactory (both
+  # Pods mount them at once) and therefore need a ReadWriteMany-capable
+  # StorageClass (e.g. NFS, EFS, Azure Files, CephFS). cartridge-storage is
+  # exclusive to knowledge-extractor and only needs ReadWriteOnce. Leave
+  # storageClassName empty for the cluster default, or set to "-" to omit it
+  # entirely - same convention as the top-level `storage.storageClass`.
+  documentStorage:
+    size: 5Gi
+    storageClassName: ""
+  vocabularyStorage:
+    size: 1Gi
+    storageClassName: ""
+  cartridgeStorage:
+    size: 5Gi
+    storageClassName: ""
+  # metaphactory-exclusive scratch volume for Knowledge Extractor uploads in
+  # transit - plain ReadWriteOnce, provisioned as one of metaphactory's own
+  # volumeClaimTemplates.
+  tempDocumentStorage:
+    size: 1Gi

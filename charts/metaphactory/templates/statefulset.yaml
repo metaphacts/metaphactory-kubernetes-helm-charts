@@ -63,6 +63,10 @@ spec:
         - name: MP_APP_ONTOPIC
           value: /bundled/apps/ontopic
         {{- end }}
+        {{- if .Values.knowledgeExtractor.enabled }}
+        - name: MP_APP_KNOWLEDGE_EXTRACTOR
+          value: /bundled/apps/knowledge-extractor
+        {{- end }}
         {{- if $jdbcEnabled }}
         - name: MP_APP_JDBC
           value: /bundled/apps/jdbc-drivers
@@ -98,6 +102,14 @@ spec:
           name: {{ .Values.container.name }}-apps
         - mountPath: /storage
           name: {{ .Values.container.name }}-storage
+        {{- if .Values.knowledgeExtractor.enabled }}
+        - mountPath: /storage/documents
+          name: knowledge-extractor-document-storage
+        - mountPath: /storage/vocabularies
+          name: knowledge-extractor-vocabulary-storage
+        - mountPath: /storage/temp-documents
+          name: {{ .Values.container.name }}-temp-document-storage
+        {{- end }}
         - name: config-app
           mountPath: "/apps/config-app"
           readOnly: true
@@ -214,6 +226,10 @@ spec:
           - key: "ontopic.prop"
             path: "config/ontopic.prop"
           {{- end }}
+          {{- if .Values.knowledgeExtractor.enabled }}
+          - key: "ocpConfig.prop"
+            path: "config/ocpConfig.prop"
+          {{- end }}
           {{- range $roleName, $roleContent := .Values.config.customRoles }}
           - key: "role-{{ $roleName }}.prop"
             path: "config/roles/role-{{ $roleName }}.prop"
@@ -271,6 +287,14 @@ spec:
       {{- end }}
       {{- with .Values.appsFromVolumes }}
       {{- toYaml . | nindent 6 }}
+      {{- end }}
+      {{- if .Values.knowledgeExtractor.enabled }}
+      - name: knowledge-extractor-document-storage
+        persistentVolumeClaim:
+          claimName: knowledge-extractor-document-storage
+      - name: knowledge-extractor-vocabulary-storage
+        persistentVolumeClaim:
+          claimName: knowledge-extractor-vocabulary-storage
       {{- end }}
   volumeClaimTemplates:
   - metadata:
@@ -330,4 +354,20 @@ spec:
       resources:
         requests:
           storage: {{ .Values.container.logsVolumeSize }}
+  {{- end }}
+  {{- if .Values.knowledgeExtractor.enabled }}
+  - metadata:
+      name: {{ .Values.container.name }}-temp-document-storage
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      {{- if .Values.storage.storageClass }}
+      {{- if (eq "-" .Values.storage.storageClass) }}
+      storageClassName: ""
+      {{- else }}
+      storageClassName: "{{ .Values.storage.storageClass }}"
+      {{- end }}
+      {{- end }}
+      resources:
+        requests:
+          storage: {{ .Values.knowledgeExtractor.tempDocumentStorage.size }}
   {{- end }}

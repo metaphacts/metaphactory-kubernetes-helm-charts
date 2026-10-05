@@ -1,0 +1,107 @@
+{{- if .Values.knowledgeExtractor.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: knowledge-extractor
+  labels:
+    app: knowledge-extractor
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: knowledge-extractor
+  template:
+    metadata:
+      labels:
+        app: knowledge-extractor
+    spec:
+      initContainers:
+      # Prepares the shared document volume layout (idempotent, re-runs on
+      # every Pod start): a file/ subdirectory plus an assets -> file symlink
+      # that metaphactory writes through, chowned to the Knowledge Extractor
+      # image's runtime UID. Runs as root in its own init container so the
+      # main container can start natively as that UID without a runtime
+      # setuid.
+      - name: knowledge-extractor-init
+        image: "{{ .Values.container.image }}:{{ .Values.container.tag }}"
+        securityContext:
+          runAsUser: 0
+          runAsGroup: 0
+        command: ["sh", "-c"]
+        args:
+          - |
+            mkdir -p /storage/documents/file &&
+            ln -sfn /storage/documents/file /storage/documents/assets &&
+            chown -R 1000650000:0 /storage &&
+            chmod -R g+w /storage
+        volumeMounts:
+        - name: document-storage
+          mountPath: /storage/documents
+        - name: vocabulary-storage
+          mountPath: /storage/vocabularies
+        - name: cartridge-storage
+          mountPath: /storage/cartridges
+      containers:
+      - name: knowledge-extractor
+        image: "{{ .Values.knowledgeExtractor.image }}:{{ .Values.knowledgeExtractor.tag }}"
+        env:
+        - name: ENV_OC_START_OCM_MGM
+          value: "true"
+        - name: ENV_OC_START_OCP
+          value: "true"
+        # Must match the document-storage mount point below - OC|miner
+        # resolves relative document-annotation paths against this root.
+        - name: ENV_DOC_BASE_DIR
+          value: "/opt/ocm/ocmsvc/data/documents/"
+        {{- with .Values.knowledgeExtractor.resources }}
+        resources: {{- toYaml . | nindent 10 }}
+        {{- end }}
+        volumeMounts:
+        - name: document-storage
+          mountPath: /opt/ocm/ocmsvc/data/documents
+          readOnly: true
+        # OC|miner's own persistent store for converted cartridges.
+        # metaphactory never mounts or writes to this volume.
+        - name: cartridge-storage
+          mountPath: /opt/ocm/ocmsvc/data/cartridges
+        # Read-only view of the SKOS vocabulary hand-off metaphactory writes.
+        - name: vocabulary-storage
+          mountPath: /opt/ocm/ocmsvc/data/vocabularies
+          readOnly: true
+        - name: license
+          mountPath: /opt/ocm/ocmsvc/data/licenses/ocm.lic
+          subPath: ocm.lic
+          readOnly: true
+        ports:
+        - name: ocp-proc-api
+          containerPort: {{ .Values.knowledgeExtractor.ports.ocpProcApi }}
+          protocol: TCP
+        - name: ocp-mgmt-api
+          containerPort: {{ .Values.knowledgeExtractor.ports.ocpMgmtApi }}
+          protocol: TCP
+        - name: health
+          containerPort: {{ .Values.knowledgeExtractor.ports.health }}
+          protocol: TCP
+        livenessProbe:
+          httpGet:
+            path: /ocmsvc/health/status/code
+            port: health
+          initialDelaySeconds: 60
+          periodSeconds: 30
+          failureThreshold: 3
+      volumes:
+      - name: document-storage
+        persistentVolumeClaim:
+          claimName: knowledge-extractor-document-storage
+      - name: vocabulary-storage
+        persistentVolumeClaim:
+          claimName: knowledge-extractor-vocabulary-storage
+      - name: cartridge-storage
+        persistentVolumeClaim:
+          claimName: knowledge-extractor-cartridge-storage
+      - name: license
+        secret:
+          secretName: {{ .Values.knowledgeExtractor.licenseSecretName }}
+      imagePullSecrets:
+      - name: {{ .Values.container.imagePullSecretName }}
+{{- end }}

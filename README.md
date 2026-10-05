@@ -170,6 +170,48 @@ kubectl delete pvc --namespace metaphactory-dev \
 
 
 
+### Optional Setup: Enable Knowledge Extractor
+
+[Knowledge Extractor](https://metaphacts.com) is a document-annotation service that powers the bundled Knowledge Extractor app: documents uploaded through metaphactory are annotated, and SKOS vocabularies metaphactory hands off are converted into cartridges for use by that app.
+
+This is an optional module: disabled by default, enabled by setting `knowledgeExtractor.enabled: true` in `values.yaml`. It deploys 1 additional Pod:
+
+| Service | Purpose |
+|---|---|
+| `knowledge-extractor` | Document-annotation service (OC\|miner) |
+
+#### Network isolation
+
+Knowledge Extractor is reached only by metaphactory, over its internal `ClusterIP` Service - it has no Ingress of its own and exposes no host ports.
+
+As with Ontopic, a `ClusterIP` Service alone is reachable from any Pod in the cluster unless something actively blocks it. This chart also renders a `NetworkPolicy` (`knowledgeExtractor.networkPolicy.enabled`, `true` by default) that default-denies ingress to the Knowledge Extractor Pod except from metaphactory, on the `ocpProcApi`/`ocpMgmtApi` ports. The container's internal health port (9180, used only for its own `livenessProbe`) is deliberately left out of this allow-list - probe traffic originates from the kubelet, not from a Pod matching the allow-list selector, and is not blocked by `NetworkPolicy` on most CNIs.
+
+**Important caveat:** `NetworkPolicy` is only enforced if your cluster's CNI plugin implements it. Calico, Cilium, and most managed-cloud CNIs (EKS, GKE, AKS) do. Plain Flannel does **not** - it silently accepts `NetworkPolicy` objects without ever enforcing them, with no error or warning. Verify your cluster's CNI supports `NetworkPolicy` before relying on this as your only isolation mechanism.
+
+#### Enabling Knowledge Extractor
+
+1. Create the required secret (`knowledge-extractor-license` by default, referenced by `knowledgeExtractor.licenseSecretName`) from your Knowledge Extractor license file, under key `ocm.lic`:
+   ```sh
+   kubectl create secret generic knowledge-extractor-license \
+     --from-file=ocm.lic=./your-knowledge-extractor.license --namespace metaphactory-dev
+   ```
+2. Knowledge Extractor shares two volumes with metaphactory - `knowledgeExtractor.documentStorage` and `knowledgeExtractor.vocabularyStorage` - which are mounted by both Pods at the same time and therefore **require a ReadWriteMany-capable StorageClass** (e.g. NFS, EFS, Azure Files, CephFS). Set `storageClassName` on each accordingly. `knowledgeExtractor.cartridgeStorage` and `knowledgeExtractor.tempDocumentStorage` are exclusive to one Pod each and work with any ReadWriteOnce StorageClass (they fall back to the cluster default, or `storage.storageClass`, if left unset).
+3. Set `knowledgeExtractor.enabled: true` in your values file and run `helm upgrade`/`helm install` as usual.
+4. Verify: `kubectl get pods --namespace metaphactory-dev` until both `knowledge-extractor` and `metaphactory` reach `Running`/`Ready`, then browse to `https://<your-metaphactory-host>/`, open the 'Apps' menu and select 'Knowledge Extractor' and confirm the UI loads.
+
+#### Redeploying Knowledge Extractor from scratch
+
+To wipe Knowledge Extractor's persistent state and start over (this destroys all uploaded documents, converted cartridges, and in-transit uploads):
+```sh
+kubectl delete pvc --namespace metaphactory-dev \
+  knowledge-extractor-document-storage \
+  knowledge-extractor-vocabulary-storage \
+  knowledge-extractor-cartridge-storage \
+  metaphactory-temp-document-storage-metaphactory-0
+```
+
+
+
 ### Deleting the Deployment
 
 To remove the complete setup run following commands (**Note: This will remove all persistent volumes and data as well!**)

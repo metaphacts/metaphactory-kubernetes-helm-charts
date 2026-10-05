@@ -25,6 +25,13 @@ data:
     web-api-endpoint=http://ontopic-store-server:3000/api-ui/
     api-docs-endpoint=http://ontopic-store-server:3000/api-docs.json
   {{- end }}
+  {{- if .Values.knowledgeExtractor.enabled }}
+  {{- /* Filename must match OcpConfig.ID ("ocpConfig") exactly - the app resolves
+     this configuration group by that name, not by the app/plugin name. */}}
+  ocpConfig.prop: |
+    ocpMgmtApiUrl=http://knowledge-extractor:{{ .Values.knowledgeExtractor.ports.ocpMgmtApi }}/ocm/mgmt/api/
+    ocpProcApiUrl=http://knowledge-extractor:{{ .Values.knowledgeExtractor.ports.ocpProcApi }}/ocm/proc/api/
+  {{- end }}
   {{- if .Values.config.jettyCustomIni }}
   custom.ini: |
     {{- .Values.config.jettyCustomIni | nindent 4 }}

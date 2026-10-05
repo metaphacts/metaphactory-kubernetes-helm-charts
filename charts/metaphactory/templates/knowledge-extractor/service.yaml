@@ -1,0 +1,17 @@
+{{- if .Values.knowledgeExtractor.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: knowledge-extractor
+spec:
+  ports:
+  - name: ocp-proc-api
+    port: {{ .Values.knowledgeExtractor.ports.ocpProcApi }}
+    targetPort: {{ .Values.knowledgeExtractor.ports.ocpProcApi }}
+  - name: ocp-mgmt-api
+    port: {{ .Values.knowledgeExtractor.ports.ocpMgmtApi }}
+    targetPort: {{ .Values.knowledgeExtractor.ports.ocpMgmtApi }}
+  selector:
+    app: knowledge-extractor
+  type: ClusterIP
+{{- end }}

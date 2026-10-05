@@ -1,0 +1,57 @@
+{{- if .Values.knowledgeExtractor.enabled }}
+# document-storage and vocabulary-storage are mounted by both the
+# metaphactory pod and the knowledge-extractor pod at the same time, so they
+# need a ReadWriteMany-capable StorageClass (e.g. NFS, EFS, Azure Files,
+# CephFS) - see README. cartridge-storage is exclusive to
+# knowledge-extractor and only needs ReadWriteOnce.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: knowledge-extractor-document-storage
+spec:
+  accessModes: [ "ReadWriteMany" ]
+  {{- if .Values.knowledgeExtractor.documentStorage.storageClassName }}
+  {{- if (eq "-" .Values.knowledgeExtractor.documentStorage.storageClassName) }}
+  storageClassName: ""
+  {{- else }}
+  storageClassName: "{{ .Values.knowledgeExtractor.documentStorage.storageClassName }}"
+  {{- end }}
+  {{- end }}
+  resources:
+    requests:
+      storage: {{ .Values.knowledgeExtractor.documentStorage.size }}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: knowledge-extractor-vocabulary-storage
+spec:
+  accessModes: [ "ReadWriteMany" ]
+  {{- if .Values.knowledgeExtractor.vocabularyStorage.storageClassName }}
+  {{- if (eq "-" .Values.knowledgeExtractor.vocabularyStorage.storageClassName) }}
+  storageClassName: ""
+  {{- else }}
+  storageClassName: "{{ .Values.knowledgeExtractor.vocabularyStorage.storageClassName }}"
+  {{- end }}
+  {{- end }}
+  resources:
+    requests:
+      storage: {{ .Values.knowledgeExtractor.vocabularyStorage.size }}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: knowledge-extractor-cartridge-storage
+spec:
+  accessModes: [ "ReadWriteOnce" ]
+  {{- if .Values.knowledgeExtractor.cartridgeStorage.storageClassName }}
+  {{- if (eq "-" .Values.knowledgeExtractor.cartridgeStorage.storageClassName) }}
+  storageClassName: ""
+  {{- else }}
+  storageClassName: "{{ .Values.knowledgeExtractor.cartridgeStorage.storageClassName }}"
+  {{- end }}
+  {{- end }}
+  resources:
+    requests:
+      storage: {{ .Values.knowledgeExtractor.cartridgeStorage.size }}
+{{- end }}
