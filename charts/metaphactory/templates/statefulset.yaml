@@ -1,3 +1,6 @@
+{{- /* JDBC drivers for the bundled jdbc-drivers app; nil-safe for --reuse-values upgrades */}}
+{{- $jdbc := .Values.container.jdbc | default dict }}
+{{- $jdbcEnabled := or $jdbc.existingClaim $jdbc.urls }}
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
@@ -14,6 +17,11 @@ spec:
     metadata:
       labels:
         app: {{ .Values.container.name }}
+      {{- if $jdbcEnabled }}
+      annotations:
+        # drivers load at startup; roll the pod when the list changes
+        checksum/jdbc: {{ $jdbc | toYaml | sha256sum }}
+      {{- end }}
     spec:
       {{- with .Values.container.affinity }}
       affinity: {{- toYaml . | nindent 8 }}
@@ -51,6 +59,10 @@ spec:
         - name: MP_APP_ONTOPIC
           value: /bundled/apps/ontopic
         {{- end }}
+        {{- if $jdbcEnabled }}
+        - name: MP_APP_JDBC
+          value: /bundled/apps/jdbc-drivers
+        {{- end }}
         {{- if .Values.config.jmx_java_tool_options }}
         - name: JAVA_TOOL_OPTIONS
           value: {{ .Values.config.jmx_java_tool_options }}
@@ -85,6 +97,11 @@ spec:
         - name: config-app
           mountPath: "/apps/config-app"
           readOnly: true
+        {{- if $jdbcEnabled }}
+        - name: jdbc-drivers
+          mountPath: /bundled/apps/jdbc-drivers/lib
+          readOnly: true
+        {{- end }}
         {{- if .Values.config.jettyCustomIni }}
         - name: jetty-custom-config
           mountPath: /var/lib/jetty/start.d/custom.ini
@@ -140,6 +157,22 @@ spec:
         - mountPath: /apps
           name: {{ .Values.container.name }}-apps
       {{- end }}
+      {{- if and $jdbc.urls (not $jdbc.existingClaim) }}
+      # Downloads the configured JDBC driver jars into the jdbc-drivers app.
+      - image: {{ .Values.container.image }}:{{ .Values.container.tag }}
+        name: {{ .Values.container.name }}-jdbc-init
+        command: ["/bin/sh", "-ec"]
+        args:
+          - |
+            {{- range $driver := $jdbc.urls }}
+            echo "Fetching JDBC driver '{{ $driver.name }}'"
+            curl -fsSL --retry 3 -o "/jdbc-target/{{ $driver.name }}.jar" "{{ $driver.url }}"
+            {{- end }}
+            ls -l /jdbc-target
+        volumeMounts:
+        - mountPath: /jdbc-target
+          name: jdbc-drivers
+      {{- end }}
       imagePullSecrets:
       - name: {{ .Values.container.imagePullSecretName }}
       volumes:
@@ -183,6 +216,15 @@ spec:
           {{- end }}
           - key: "plugin.properties"
             path: "plugin.properties"
+      {{- if $jdbcEnabled }}
+      - name: jdbc-drivers
+        {{- if $jdbc.existingClaim }}
+        persistentVolumeClaim:
+          claimName: {{ $jdbc.existingClaim }}
+        {{- else }}
+        emptyDir: {}
+        {{- end }}
+      {{- end }}
       {{- if .Values.config.jettyCustomIni }}
       - name: jetty-custom-config
         configMap:

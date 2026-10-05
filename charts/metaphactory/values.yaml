@@ -42,6 +42,16 @@ container:
     periodSeconds: 120
   affinity: {}
   envFrom: []
+  # JDBC drivers for metaphactory (activates the bundled `jdbc-drivers` app).
+  # Note: separate from `ontopic.*.jdbc` - the datasource wizard's "Test
+  # Connection" runs in the metaphactory pod. Same convention: either a
+  # pre-populated PVC (existingClaim, mounted read-only) or urls fetched by
+  # an init container on every pod start.
+  jdbc:
+    existingClaim: ""
+    urls: []
+    # - name: databricks
+    #   url: https://repo1.maven.org/maven2/com/databricks/databricks-jdbc/3.4.2/databricks-jdbc-3.4.2.jar
 #appsFromVolumes:
 #  - name: skinapp
 #    configMap:
