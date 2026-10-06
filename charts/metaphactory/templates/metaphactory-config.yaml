@@ -123,9 +123,5 @@ data:
 
           # replace with the url of the GraphDB repository
           hr:repositoryURL <{{ .Values.database.address }}/repositories/{{ .Values.database.assetsDatabaseName }}>
-       ];
-       mph:extension [
-          mph:extensionType "metaphacts:NamedGraphSecurity";
-          mph:strategy {{ .Values.database.assetsSecurityStrategy | default "assets" | quote }}
        ] .
   {{- end }}

@@ -74,6 +74,36 @@ The database configuration is provided with the `repository-config` key in the `
 
 **Note:** the `ConfigMap` contains two configuration files for the tests and assets repositories: `repository-assets-config` and `repository-tests-config` which will configure metaphactory to use GraphDB repositories for assets and tests.
 
+Set `database.enabled: false` in `values.yaml` to skip projecting the repository configuration files into the pod entirely, for deployments where metaphactory is needed without a database and the repository will be configured later (e.g. through the Repository Administration page or a subsequent upgrade). This is enabled (`true`) by default to preserve existing behavior.
+
+##### ServiceAccount Configuration
+
+The `serviceAccount` section in `values.yaml` controls which Kubernetes `ServiceAccount` the metaphactory pod runs as. This is primarily useful for authenticating to cloud APIs without embedding static credentials, e.g. AWS S3 access via EKS Pod Identity/IRSA - set `serviceAccount.annotations` to the role-mapping annotation your cloud provider expects.
+
+- `create: false`, `name: ""` - `serviceAccountName` is not rendered; the pod implicitly uses the namespace's `default` service account
+- `create: true`, `name: ""` - the chart creates a `ServiceAccount` named after the Helm release, and the pod uses it
+- `create: true`, `name: "metaphactory"` - the chart creates a `ServiceAccount` with the given name, and the pod uses it
+- `create: false`, `name: "metaphactory"` - the pod uses an existing, externally-managed `ServiceAccount` with the given name
+
+**Please note:** when turning off a chart-created `ServiceAccount`, clear `create` **and** `name` in the same upgrade. Setting only `create: false` while `name` is still set lands on the fourth case above: the chart deletes its `ServiceAccount`, but the pod template still references that (now-deleted) name, so a recreated pod fails with `FailedCreate: serviceaccount not found` until `name` is cleared as well (or the release is uninstalled and reinstalled - PVCs survive and rebind).
+
+##### JDBC Driver Provisioning
+
+metaphactory ships with a PostgreSQL JDBC driver only; all other drivers (e.g. Databricks, BigQuery, Snowflake, SAP HANA, MSSQL) must be provisioned at runtime via the bundled `jdbc-drivers` app, activated and configured through the `container.jdbc` section in `values.yaml`. This is needed because the datasource wizard's "Test Connection" feature executes inside the metaphactory pod itself - a driver configured only elsewhere (e.g. for Ontopic in previous chart versions) still fails there with `No suitable driver found`.
+
+Two options, same convention used elsewhere in this chart:
+- `existingClaim` (recommended for production/air-gapped clusters): reference a `PersistentVolumeClaim` you populate once yourself (e.g. via `kubectl cp` against a throwaway pod mounting the same claim), mounted read-only. No runtime network dependency.
+- `urls` (convenience default for quick evaluation): a list of `{name, url}` entries downloaded by an initContainer (reusing the metaphactory image, which already has `curl`) into an ephemeral volume on every pod start. Ignored if `existingClaim` is set. Add one entry per relational database you plan to connect to, e.g.:
+  ```yaml
+  container:
+    jdbc:
+      urls:
+        - name: snowflake
+          url: https://repo1.maven.org/maven2/net/snowflake/snowflake-jdbc/4.4.0/snowflake-jdbc-4.4.0.jar
+  ```
+
+Changing the driver list rolls the pod automatically on the next `helm upgrade` (drivers are loaded once at startup). Verify after rollout with `kubectl logs metaphactory-0 -c metaphactory-jdbc-init` (fetch log, `urls` path only) and `kubectl exec metaphactory-0 -- ls -l /bundled/apps/jdbc-drivers/lib/`.
+
 
 #### Initial Deployment
 
@@ -98,13 +128,11 @@ Please note, that Helm will create the deployment within the default namespace. 
 
 ### Optional Setup: Enable Knowledge Extractor
 
-[Knowledge Extractor](https://metaphacts.com) is a document-annotation service that powers the bundled Knowledge Extractor app: documents uploaded through metaphactory are annotated, and SKOS vocabularies metaphactory hands off are converted into cartridges for use by that app.
+[Knowledge Extractor](https://metaphactory.com) is a document-annotation service that powers the bundled Knowledge Extractor app: documents uploaded through metaphactory are annotated, and SKOS vocabularies metaphactory hands off are converted into cartridges for use by that app.
 
 This is an optional module: disabled by default, enabled by setting `knowledgeExtractor.enabled: true` in `values.yaml`. It deploys 1 additional Pod:
 
-| Service | Purpose |
-|---|---|
-| `knowledge-extractor` | Document-annotation service (OC\|miner) |
+The service `knowledge-extractor`  provides the Document-annotation backend service.
 
 #### Network isolation
 
@@ -125,7 +153,7 @@ A `ClusterIP` Service alone is reachable from any Pod in the cluster unless some
 3. Set `knowledgeExtractor.enabled: true` in your values file and run `helm upgrade`/`helm install` as usual.
 4. Verify: `kubectl get pods --namespace metaphactory-dev` until both `knowledge-extractor` and `metaphactory` reach `Running`/`Ready`, then browse to `https://<your-metaphactory-host>/`, open the 'Apps' menu and select 'Knowledge Extractor' and confirm the UI loads.
 
-#### Redeploying Knowledge Extractor from scratch
+#### Re-deploying Knowledge Extractor from scratch
 
 To wipe Knowledge Extractor's persistent state and start over (this destroys all uploaded documents, converted cartridges, and in-transit uploads):
 ```sh

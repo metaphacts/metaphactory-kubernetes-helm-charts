@@ -6,6 +6,22 @@ Note: when updating to a newer release of metaphactory, also regard the informat
 
 If not mentioned otherwise, the Helm chart definitions are backwards compatible to the previous released version.
 
+## 2026-09-30 (Release 6.1.0)
+
+The docker tags have been updated to the 6.1.0 release of metaphactory.
+
+The Knowledge Extractor module (document annotation extraction service) is now an optional part of the deployment.
+
+**Breaking change:** the standalone Ontopic suite deployment added for metaphactory 6.0 (version 1.12 of the Helm chart ) has been removed - the Semantic Layer's mapping/virtualization capabilities are now fully integrated into metaphactory itself and require no separate deployment or configuration.
+If your values file sets `ontopic.enabled: true` or any other `ontopic.*` key, remove that section before upgrading; it is no longer recognized and the corresponding Pods will no longer be deployed.
+
+Additional changes
+
+- Add support for configuring a `ServiceAccount` for the metaphactory pod (e.g. for EKS Pod Identity/IRSA-style cloud API authentication)
+- Add ability to provision JDBC drivers for metaphactory itself via the bundled `jdbc-drivers` app (`container.jdbc`)
+- Add ability to disable the database/repository configuration entirely (`database.enabled: false`) for deployments where it will be configured later
+
+
 ## 2026-08-03 (Release 6.0.1)
 
 The docker tags have been updated to the 6.0.1 release of metaphactory.
