@@ -59,10 +59,6 @@ spec:
         - name: MP_APP_EIA_PHYSICAL_LAYER
           value: /bundled/apps/eia-physical-layer
         {{- end }}
-        {{- if .Values.ontopic.enabled }}
-        - name: MP_APP_ONTOPIC
-          value: /bundled/apps/ontopic
-        {{- end }}
         {{- if .Values.knowledgeExtractor.enabled }}
         - name: MP_APP_KNOWLEDGE_EXTRACTOR
           value: /bundled/apps/knowledge-extractor
@@ -222,10 +218,6 @@ spec:
             path: "config/assets.prop"
           - key: "aws-services.prop"
             path: "config/aws-services.prop"
-          {{- if .Values.ontopic.enabled }}
-          - key: "ontopic.prop"
-            path: "config/ontopic.prop"
-          {{- end }}
           {{- if .Values.knowledgeExtractor.enabled }}
           - key: "ocpConfig.prop"
             path: "config/ocpConfig.prop"
